@@ -1,5 +1,6 @@
 (ns auto-parallel.core
-  (use [clojure.tools.trace]))
+  (use [clojure.tools.trace])
+  (use [clojure.walk]))
 
 ;; make it easier to play with syntax tree
 (defn args [expr] (rest expr))
@@ -21,7 +22,6 @@
 ;; everything this recovers in :names can be computed in parallel
 ;; call this multiple times to get multiple parallelize able steps
 ;; assumes everything is a function call
-;; assumes all constants have been eliminated already
 (defn prune
   "prunes a single level of leaves from syntax tree"
   [expr]
@@ -113,7 +113,7 @@
      par    (time (par1 (+ (rand-int 100) (rand-int 100))))]
     nil))
 
-(defn macropprint [expr] (pprint (macroexpand expr)))
+(defn macropprint [expr] (pprint (macroexpand-all expr)))
 
 (defn -main
   "I don't do a whole lot ... yet."
