@@ -9,6 +9,15 @@
   [expr]
   (every? true? (map const? (args expr))))
 
+; https://gist.github.com/jcromartie/5459350
+(defmacro parlet
+  [bindings & forms]
+  (let
+    [pairs (partition 2 bindings)
+     names (map first pairs)
+     vals  (map second pairs)]
+    `(let [[~@names] (pvalues ~@vals)] ~@forms)))
+
 ;; everything this recovers in :names can be computed in parallel
 ;; call this multiple times to get multiple parallelize able steps
 ;; assumes everything is a function call
@@ -40,7 +49,8 @@
     (let
       [{e :expr n :names} (prune expr)
        bindings           (apply vector (apply concat (into (list) n)))]
-      `(let ~bindings ~(make-nested-lets e)))))
+      `(parlet ~bindings ~(make-nested-lets e)))))
+
 
 (defmacro par2 [expr] (make-nested-lets expr))
 
@@ -84,6 +94,15 @@
     [r      (slow-function 100 #(rand-int 100))
      normal (time (+ (r) (+ (r) (r))))
      par    (time (par1 (+ (r) (+ (r) (r)))))]
+    nil))
+
+(defn blah2
+  "should saturate" ;; this is significantly faster, but not what I want
+  []
+  (let
+    [r      (slow-function 100 #(rand-int 100))
+     par1    (time (par1 (+ (r) (+ (r) (r)))))
+     par2    (time (par2 (+ (r) (+ (r) (r)))))]
     nil))
 
 (defn experiment2
