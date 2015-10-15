@@ -88,7 +88,7 @@
     nil))
 
 (defn blah
-  "should saturate" ;; this is significantly faster, but not what I want
+  "should saturate"
   []
   (let
     [r      (slow-function 100 #(rand-int 100))
@@ -97,7 +97,7 @@
     nil))
 
 (defn blah2
-  "should saturate" ;; this is significantly faster, but not what I want
+  "should saturate"
   []
   (let
     [r      (slow-function 100 #(rand-int 100))
