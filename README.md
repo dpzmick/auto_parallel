@@ -1,12 +1,11 @@
 # auto_parallel
-Collection of clojure macros to parallelize code. There are many existing
-parallelization solutions in clojure. This project is an experiment which will
-attempt to allow for simple parallelization of existing code, in cases where
-builtins like pmap, or libraries like reducers, tesser, and claypoole don't
-quite fit.
+Collection of clojure macros to parallelize code. This project is an experiment
+which will attempt to allow for simple parallelization of existing code, in
+cases where builtins like pmap, or libraries like reducers, tesser, and
+claypoole don't quite fit.
 
 ## goals
-* parallelize code with very little though (just stick stuff all over the
+* parallelize code with very little thought (just stick stuff all over the
   codebase without really thinking and maybe get a speedup).
 * threadpools - be predictable
 
