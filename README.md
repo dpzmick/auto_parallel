@@ -30,18 +30,37 @@ subexpressions with no dependencies first.
 
 # notes and interesting issues
 ## claypoole futures
-claypoole futures are great, but you can't be careless with them
+claypoole futures are great, but you can't be careless with them:
 
     (def pool (cp/threadpool 1))
     (defn f2 [] @(cp/future pool 1)) ;; create and deref future on threadpool returuning 1
     (defn f1 [] @(cp/future pool (f2))) ;; create and deref future that calls f2
 
-    (d1) ;; deadlock. the first future uses the whole pool, the second one can never run
+    (f1) ;; deadlock. the first future uses the whole pool, the second one can never run
 
 This means that, if we want to be able to throw parexpr wherever we want, we
-need to do something more clever. For example, this deadlocks as well
+need to do something more clever. For example, this deadlocks as well:
 
     (def pool (cp/threadpool 1))
     (defn f2 [] (parexpr pool (+ 1 2)))
     (defn f1 [] (parexpr pool (+ (f2) (f2))))
     (f1) ;; deadlock, no available threads to evaluate the futures
+
+Luckily, it looks like we can use a ForkJoinPool, instead of a
+ScheduledThreadPool, which claypoole uses by default, to avoid this deadlock:
+
+    (import 'java.util.concurrent.ForkJoinPool)
+    (def pool (ForkJoinPool. 1)) ;; will not deadlock with ForkJoinPool
+
+    (defn f2 [] @(cp/future pool (+ 1 2)))
+    (defn f1 [] @(cp/future pool (f2)))
+
+    (f1) ;; doesn't deadlock
+
+This also works with parexpr
+
+    (import 'java.util.concurrent.ForkJoinPool)
+    (def pool (ForkJoinPool. 1)) ;; will not deadlock with ForkJoinPool
+    (defn f2 [] (parexpr pool (+ 1 2)))
+    (defn f1 [] (parexpr pool (+ (f2) (f2))))
+    (f1) ;; no deadlock
