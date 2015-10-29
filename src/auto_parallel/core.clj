@@ -20,11 +20,11 @@
      vals  (map second pairs)]
     `(let [[~@names] (cp/pvalues ~pool ~@vals)] ~@forms)))
 
-;; everything this recovers in :names can be computed in parallel
-;; call this multiple times to get multiple parallelize able steps
-;; assumes everything is a function call
 (defn prune
-  "prunes a single level of leaves from syntax tree"
+  "
+  finds 'leaves' in the syntax tree. Everything in :names can be computed in
+  parallel
+  "
   [expr]
   (cond
     (const? expr)
@@ -44,6 +44,9 @@
       {:expr (cons (fun expr) subexprs), :names mynames})))
 
 (defn make-nested-lets
+  "
+  makes nested parlets such that parallelism is maximized
+  "
   [pool expr]
   (if (const? expr)
     expr
