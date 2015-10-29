@@ -18,3 +18,27 @@
                 (+
                  (fib (- n 1))
                  (fib (- n 2))))))
+
+(defn merge-seqs
+  "Merges two sorted sequences into a single sorted sequence"
+  ([left right]
+    (merge-seqs (list left right)))
+  ([[left right]]
+    (loop [l left, r right, result []]
+      (let [lhead (first l), rhead (first r)]
+        (cond
+          (nil? lhead)     (concat result r)
+          (nil? rhead)     (concat result l)
+          (<= lhead rhead) (recur (rest l) r (conj result lhead))
+          true             (recur l (rest r) (conj result rhead)))))))
+
+(defn merge-sort
+  [lst]
+  (if (= 1 (count lst))
+    lst
+
+    (let
+      [middle (/ (count lst) 2)
+       front  (take middle lst)
+       back   (drop middle lst)]
+      (ap/parexpr pool (merge-seqs (merge-sort front) (merge-sort back))))))

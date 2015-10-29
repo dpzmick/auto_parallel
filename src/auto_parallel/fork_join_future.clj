@@ -32,4 +32,4 @@
 
 (defmacro pvalues
   [pool & exprs]
-  `(pcalls pool ~@(for [e exprs] `(fn [] ~e))))
+  `(pcalls ~pool ~@(for [e exprs] `(fn [] ~e))))
