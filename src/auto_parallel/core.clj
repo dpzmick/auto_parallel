@@ -1,7 +1,7 @@
 (ns auto-parallel.core
   (use [clojure.tools.trace])
   (use [auto-parallel.util])
-  (:require [auto-parallel.fork-join-future :as fjf]))
+  (:require [auto-parallel.fork-join-par :as p]))
 
 ;; make it easier to play with syntax tree
 (defn args [expr] (rest expr))
@@ -18,7 +18,7 @@
     [pairs (partition 2 bindings)
      names (map first pairs)
      vals  (map second pairs)]
-    `(let [[~@names] (fjf/pvalues ~pool ~@vals)] ~@forms)))
+    `(let [[~@names] (p/pvalues ~pool ~@vals)] ~@forms)))
 
 (defn prune
   "
