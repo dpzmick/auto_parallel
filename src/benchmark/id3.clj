@@ -1,4 +1,7 @@
-(ns benchmark.id3)
+(ns benchmark.id3
+  (:require [auto-parallel.core :as ap]))
+
+(use 'clojure.tools.trace)
 
 (defn rand-bool [] (case (rand-int 2)
                      0   true
@@ -18,24 +21,26 @@
      cwith    (count with)
      cwithout (count without)
      cdata    (count dataset)]
-    (+
-     (- (* (/ cwith cdata) (log2 (/ cwith cdata))))
-     (- (* (/ cwithout cdata) (log2 (/ cwithout cdata)))))))
+    (if (or (= cwith cdata) (= cwithout cdata))
+      0.0
+      (+
+       (- (* (/ cwith cdata) (log2 (/ cwith cdata))))
+       (- (* (/ cwithout cdata) (log2 (/ cwithout cdata))))))))
 
-;; why does this use more than one cpu core?
 (defn id3
   "builds a tree using id3"
   [dataset attrs target]
-  (let
-    [sattrs     (sort-by #(entropy dataset %) attrs)]
-    (if
-      (or (= (first sattrs) target) (empty? attrs))
-      []
-      (let [split-attr (first sattrs)
-            left       (filter #(not (has? split-attr %)) dataset)
-            right      (filter #(has? split-attr %) dataset)]
-        (cons split-attr [(id3 left  (rest sattrs) target)
-                          (id3 right (rest sattrs) target)])))))
+  (if (or (empty? dataset) (empty? attrs))
+    []
+    (let
+      [sattrs (sort-by #(entropy dataset %) attrs)]
+      (if (= (first sattrs) target)
+        []
+        (let [split-attr (first sattrs)
+              left       (filter #(not (has? split-attr %)) dataset)
+              right      (filter #(has? split-attr %) dataset)]
+          (cons split-attr [(id3 left  (rest sattrs) target)
+                            (id3 right (rest sattrs) target)]))))))
 
 (defn make-random-data
   [n attrs]
@@ -43,3 +48,9 @@
     (take n (repeatedly #(rand-datum)))))
 
 (defn make-attrs [m] (take m (map #(keyword (str %)) (range))))
+
+(defn doid3 [n m]
+  (let
+    [attrs (make-attrs m)
+     data  (make-random-data n attrs)]
+    (id3 data (rest attrs) (first attrs))))
