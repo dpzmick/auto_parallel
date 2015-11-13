@@ -11,14 +11,15 @@
   [expr]
   (every? true? (map const? (args expr))))
 
-; https://gist.github.com/jcromartie/5459350
+;; TODO check for dependencies during compile, this might not be a valid thing
+;; to do
 (defmacro parlet
   [pool bindings & forms]
   (let
     [pairs (partition 2 bindings)
      names (map first pairs)
      vals  (map second pairs)]
-    `(let [[~@names] (p/pvalues ~pool ~@vals)] ~@forms)))
+    `(let [[~@names] (p/pvalues ~pool ~@vals)] ~@forms))) ;; pattern match
 
 (defn prune
   "

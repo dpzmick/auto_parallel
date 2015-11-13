@@ -1,3 +1,6 @@
+;; id3 for datasets where all attributes are binary attributes
+;; example of a datum {:a true :b false :c true}
+
 (ns benchmark.id3
   (:require [auto-parallel.core :as ap]))
 
@@ -7,14 +10,12 @@
                      0   true
                      1   false))
 
-;; id3 for datasets where all attributes are binary attributes
-;; example of a datum {:a true :b false :c true}
 (defn log2 [n] (/ (Math/log n) (Math/log 2)))
 
 ;; this is sort of useless but gives us nice naming I guess
 (defn has? [attr datum] (attr datum))
 
-(defn entropy [dataset attr]
+(defn entropy [dataset attr] {:post [(not (Double/isNaN %))]}
   (let
     [with     (filter #(has? attr %) dataset)
      without  (filter #(not (has? attr %)) dataset)

@@ -2,6 +2,7 @@
   (:use benchmark.fib)
   (:use benchmark.merge)
   (:use benchmark.pmap)
+  (:use benchmark.id3)
   (:require [criterium.core :as cr]))
 
 (import 'java.util.concurrent.ForkJoinPool)
@@ -54,10 +55,28 @@
                      builtin-pmap-bench
                      ])
 
+;; only testing on entropy function
+(def n 10000)
+(def m 10000)
+(def entropy-attrs (make-attrs m))
+(def entropy-data (make-random-data n entropy-attrs))
+
+;; if we define these here, this will not work, clojure will cache the filter
+;; operations (or something like that)
+
+(defb entropy-stock-bench (entropy entropy-data (first entropy-attrs)))
+(defb entropy-par-bench (entropy-par pool entropy-data (first entropy-attrs)))
+
+(def entropy-benchmarks [
+                         entropy-stock-bench
+                         entropy-par-bench
+                         ])
+
 ;; drive it
 ; (def benchmark-sets-to-run [fib-benchmarks])
 ; (def benchmark-sets-to-run [merge-benchmarks])
-(def benchmark-sets-to-run [pmap-bechmarks])
+; (def benchmark-sets-to-run [pmap-bechmarks])
+(def benchmark-sets-to-run [entropy-benchmarks])
 
 (defn -main [& args]
   (println "Benchmark starting")
