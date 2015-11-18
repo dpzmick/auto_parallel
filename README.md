@@ -45,9 +45,7 @@ this:
                         (+ a b c)))
 
 We want to allow the other-long-fun-with-effects call to proceed even if all of
-the values in the parlet haven't finished. When threadpools are implemented, it
-might even be nice to be able to throw the execution of other-long-fun into the
-thread pool (but this may come later). The code generated in this case:
+the values in the parlet haven't finished. The code generated in this case:
 
     (let
      [[a b c]
@@ -56,6 +54,9 @@ thread pool (but this may come later). The code generated in this case:
         (p/fork (p/new-task (fn [] (long-fun 100))))]]
      (other-long-fun-with-effects 200)
      (+ (p/join a) (p/join b) (p/join c)))
+
+The real value of this behavior will become evident when the parexpr macro is
+discussed.
 
 
 ### error detection
