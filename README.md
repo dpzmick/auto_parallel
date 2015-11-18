@@ -14,7 +14,7 @@ claypoole don't quite fit.
 * support map syntax
 
 # features
-##parlet macro
+## parlet macro
 A parallel let expression. Each of the let bindings is evaluated in a fork/join
 task. The tasks are not joined until the values are needed.
 
@@ -23,7 +23,7 @@ project.
 
 Simple example (cleaned up for readability):
 
-    (macroexpand-1 (parlet [a 1 b 2 c 3] (+ a b c)))
+    (macroexpand-1 '(parlet [a 1 b 2 c 3] (+ a b c)))
 
     (let
      [[a b c]
@@ -35,6 +35,30 @@ Simple example (cleaned up for readability):
       (p/join b)
       (p/join c)))
 
+The join call is saved until the moment the value is needed, to allow code like
+this:
+
+    (macroexpand-1 '(parlet [a (long-fun 100)
+                            b (long-fun 100)
+                            c (long-fun 100)]
+                        (other-long-fun-with-effects 200)
+                        (+ a b c)))
+
+We want to allow the other-long-fun-with-effects call to proceed even if all of
+the values in the parlet haven't finished. When threadpools are implemented, it
+might even be nice to be able to throw the execution of other-long-fun into the
+thread pool (but this may come later). The code generated in this case:
+
+    (let
+     [[a b c]
+      [ (p/fork (p/new-task (fn [] (long-fun 100))))
+        (p/fork (p/new-task (fn [] (long-fun 100))))
+        (p/fork (p/new-task (fn [] (long-fun 100))))]]
+     (other-long-fun-with-effects 200)
+     (+ (p/join a) (p/join b) (p/join c)))
+
+
+### error detection
 The parlet macro detects dependencies. For example, the compiler shouldn't let
 us attempt to make this let parallel:
 
