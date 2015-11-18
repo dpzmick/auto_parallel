@@ -16,10 +16,11 @@
 
 (defn pmap
   "
-  Force evaluation of each of the arguments, in parallel, using fork/join tasks.
-  actually this might not force evaluation
+  Sort of confusing behavior.
+  Starts a ForkJoin task for each element in the sequence, waits for the first
+  to finish, then returns. The rest will be computed lazily in the background.
   "
-  [pool f lst]
+  [f lst]
   (let
     [exprs  (map #(fn [] (f %)) lst)
      tasks  (map new-task exprs)
@@ -28,9 +29,9 @@
     (cons me (map join forked)))) ;; because this map is lazy
 
 (defn pcalls
-  [pool & fs]
-  (pmap pool #(%) fs))
+  [& fs]
+  (pmap #(%) fs))
 
 (defmacro pvalues
-  [pool & exprs]
-  `(pcalls ~pool ~@(for [e exprs] `(fn [] ~e))))
+  [& exprs]
+  `(pcalls ~@(for [e exprs] `(fn [] ~e))))

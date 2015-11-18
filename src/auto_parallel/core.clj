@@ -3,13 +3,8 @@
   (use [auto-parallel.util])
   (:require [auto-parallel.fork-join-par :as p]))
 
-;; make it easier to play with syntax tree
-(defn args [expr] (rest expr))
-(defn fun  [expr] (first expr))
-(defn const? [expr] (not (seq? expr)))
-(defn all-args-const?
-  [expr]
-  (every? true? (map const? (args expr))))
+;; TODO handle map syntax, then I think I will have hit all of the syntax needed
+;; to be complete
 
 ;; some utilities
 (defn any-true? [lst] (not (nil? (some true? lst))))
@@ -68,6 +63,71 @@
     ;; the expression is a single term
     (dep-in-const? var-name expr)))
 
+;; replace-all
+(def replace-in-expr) ;; defined later
+
+;; most binding forms expand to a let*, so do the macroexpand first
+(defn replace-all    [e replacement expr] (replace-in-expr e replacement (macroexpand expr)))
+(defn replace-many   [es reps expr]
+  (if (empty? es)
+    expr
+    (recur
+      (rest es)
+      (rest reps)
+      (replace-all (first es) (first reps) expr))))
+
+(defn replace-in-let
+  ([e replacment expr] (replace-in-let e replacment (partition 2 (second expr)) (rest (rest expr))))
+
+  ([e replacment bindings forms]
+   (if (= 1 (count bindings))
+     ;; will only ever happen inside of the recursive call for the let
+     ;; expression when we still need to perform replacements in this env
+     (let
+       [first-name  (first  (first bindings))
+        first-value (second (first bindings))
+        replaced-v  (replace-all e replacment first-value)]
+       `(let
+          [~first-name ~replaced-v]
+          ~@(map #(replace-all e replacment %) forms)))
+
+     ;; we still have some bindings to evaluate
+     (let
+       [first-name  (first  (first bindings))
+        first-value (second (first bindings))
+        replaced-v  (replace-all e replacment first-value)]
+
+       ;; if we rebind the value, there is no dependency in anything
+       ;; inheriting this environment, just need to perform replacement in the
+       ;; binding, then emit the rest of the expression as is
+       (if (= first-name e)
+         `(let
+            [~first-name ~replaced-v]
+            (let
+              ~(apply vector (flatten (rest bindings)))
+              ~@forms))
+
+         ;; otherwise, the binding may still depend on the name, some other
+         ;; binding might, or the body might
+         `(let [~first-name ~replaced-v] ~(replace-in-let e replacment (rest bindings) forms)))))))
+
+(defn replace-in-normal-expr [e replacement expr] (map #(replace-all e replacement %) expr))
+(defn replace-in-const       [e replacement expr] (if  (= e expr) replacement expr))
+
+(defn replace-in-expr
+  [e replacement expr]
+  (if (sequential? expr)
+
+    ;; we have a function call or some other form (like a vector or list
+    ;; literal)
+    (if (= 'let* (first expr))
+      (replace-in-let e replacement expr)
+      (replace-in-normal-expr e replacement expr))
+
+    ;; the expression is a single term
+    (replace-in-const e replacement expr)))
+
+;; parlet
 (defn let-has-deps? [bindings]
   (let
     [pairs          (partition 2 bindings)
@@ -77,16 +137,31 @@
     (any-true? (map depend-on-any? relevant-names exprs))))
 
 (defmacro parlet
-  [pool bindings & forms]
+  [bindings & forms]
   (if (let-has-deps? bindings)
     (throw (Exception. "this let form cannot be parallel. There are dependencies in the bindings"))
     (let
-      [pairs (partition 2 bindings)
-       names (map first pairs)
-       vals  (map second pairs)]
+      [pairs    (partition 2 bindings)
+       names    (map first pairs)
+       vals     (map second pairs)
+       tasks    (apply vector (map (fn [v] `(p/fork (p/new-task (fn [] ~v)))) vals))
+       new-vals (map (fn [n] `(p/join ~n)) names)]
+
+      ;; each val becomes a fork join task, each reference to the value becomes
+      ;; a (join task)
 
       ;; use pattern matching to express this
-      `(let [[~@names] (p/pvalues ~pool ~@vals)] ~@forms))))
+      `(let [[~@names] ~tasks] ~@(map #(replace-many names new-vals %) forms)))))
+
+
+;; parexpr
+;; make it easier to play with syntax tree
+(defn args [expr] (rest expr))
+(defn fun  [expr] (first expr))
+(defn const? [expr] (not (seq? expr)))
+(defn all-args-const?
+  [expr]
+  (every? true? (map const? (args expr))))
 
 (defn prune
   "
@@ -115,15 +190,15 @@
   "
   makes nested parlets such that parallelism is maximized
   "
-  [pool expr]
+  [expr]
   (if (const? expr)
     expr
     (let
       [{e :expr n :names} (prune expr)
        bindings           (apply vector (apply concat (into (list) n)))]
-      `(parlet ~pool ~bindings ~(make-nested-lets pool e)))))
+      `(parlet ~bindings ~(make-nested-lets e)))))
 
-(defmacro parexpr [pool expr] (make-nested-lets pool expr))
+(defmacro parexpr [expr] (make-nested-lets expr))
 
 ; ;; TODO deal with maps
 ; (defn replace-all

@@ -53,9 +53,9 @@ the values in the parlet haven't finished. The code generated in this case:
 
     (let
      [[a b c]
-      [ (p/fork (p/new-task (fn [] (long-fun 100))))
-        (p/fork (p/new-task (fn [] (long-fun 100))))
-        (p/fork (p/new-task (fn [] (long-fun 100))))]]
+      [(p/fork (p/new-task (fn [] (long-fun 100))))
+       (p/fork (p/new-task (fn [] (long-fun 100))))
+       (p/fork (p/new-task (fn [] (long-fun 100))))]]
      (other-long-fun-with-effects 200)
      (+ (p/join a) (p/join b) (p/join c)))
 
