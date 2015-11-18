@@ -35,6 +35,10 @@ Simple example (cleaned up for readability):
       (p/join b)
       (p/join c)))
 
+You might notice that I have not called p/compute on any of the values. They are
+all forked at the moment so that the parlet will return immediately. This
+behavior may change in the future once I have a compressive benchmarking plan.
+
 The join call is saved until the moment the value is needed, to allow code like
 this:
 
