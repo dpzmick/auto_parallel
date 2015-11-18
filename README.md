@@ -7,11 +7,45 @@ claypoole don't quite fit.
 ## goals
 * parallelize code with very little thought (just stick stuff all over the
   codebase without really thinking and maybe get a speedup).
-* threadpools - be predictable
+* threadpools
+* be predictable
+
+## big TODOS
+* support map syntax
 
 # features
-## parallel execution of arguments
-###parags macro
+##parlet macro
+A parallel let expression. Each of the let bindings is evaluated in a fork/join
+task. The tasks are not joined until the values are needed.
+
+In the following examples "p" refers the fork_join_par namespace in this
+project.
+
+Simple example (cleaned up for readability):
+
+    (macroexpand-1 (parlet [a 1 b 2 c 3] (+ a b c)))
+
+    (let
+     [[a b c]
+      [(p/fork (p/new-task (fn [] 1)))
+       (p/fork (p/new-task (fn [] 2)))
+       (p/fork (p/new-task (fn [] 3)))]]
+     (+
+      (p/join a)
+      (p/join b)
+      (p/join c)))
+
+The parlet macro detects dependencies. For example, the compiler shouldn't let
+us attempt to make this let parallel:
+
+    (parlet [a 1 b (+ a 1) b])
+
+    Exception this let form cannot be parallel. There are dependencies in the bindings
+
+As you can see, it doesn't let us!
+
+##parexpr macro
+(currently broken, probably)
 parexpr is a macro that executes an expression in parallel. It evaluates any
 subexpressions with no dependencies first.
 
@@ -27,44 +61,3 @@ subexpressions with no dependencies first.
     ;; evalute (r2) (r1) (r1) at the same time, so the execution takes as long
     ;; as the longest subexpression, which is (r2)
 
-# notes and interesting issues
-## claypoole futures
-claypoole futures are great, but you can't be careless with them:
-
-    (def pool (cp/threadpool 1))
-
-    (defn f2 [] @(cp/future pool 1)) ;; create and deref future on threadpool returuning 1
-    (defn f1 [] @(cp/future pool (f2))) ;; create and deref future that calls f2
-
-    (f1) ;; deadlock. the first future uses the whole pool, the second one can never run
-
-This means that, if we want to be able to throw parexpr wherever we want, we
-need to do something more clever. For example, this deadlocks as well:
-
-    (def pool (cp/threadpool 1))
-
-    (defn f2 [] (parexpr pool (+ 1 2)))
-    (defn f1 [] (parexpr pool (+ (f2) (f2))))
-
-    (f1) ;; deadlock, no available threads to evaluate the futures
-
-Luckily, it looks like we can use a ForkJoinPool, instead of a
-ScheduledThreadPool, which claypoole uses by default, to avoid this deadlock:
-
-    (import 'java.util.concurrent.ForkJoinPool)
-    (def pool (ForkJoinPool. 1)) ;; will not deadlock with ForkJoinPool
-
-    (defn f2 [] @(cp/future pool (+ 1 2)))
-    (defn f1 [] @(cp/future pool (f2)))
-
-    (f1) ;; doesn't deadlock
-
-This also works with parexpr
-
-    (import 'java.util.concurrent.ForkJoinPool)
-    (def pool (ForkJoinPool. 1)) ;; will not deadlock with ForkJoinPool
-
-    (defn f2 [] (parexpr pool (+ 1 2)))
-    (defn f1 [] (parexpr pool (+ (f2) (f2))))
-
-    (f1) ;; no deadlock
