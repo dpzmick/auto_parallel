@@ -14,6 +14,13 @@
 ;; some utilities
 (defn any-true? [lst] (not (nil? (some true? lst))))
 
+(defn iterative-list-accum
+  ([lst] (iterative-list-accum lst [(list)]))
+  ([lst acc]
+   (if (empty? lst)
+     acc
+     (recur (rest lst) (conj acc (cons (first lst) (last acc)))))))
+
 ;; check for dependencies
 (def dep-in-expr?) ;; defined later
 
@@ -61,14 +68,25 @@
     ;; the expression is a single term
     (dep-in-const? var-name expr)))
 
+(defn let-has-deps? [bindings]
+  (let
+    [pairs          (partition 2 bindings)
+     names          (map first pairs)
+     exprs          (map second pairs)
+     relevant-names (butlast (iterative-list-accum names))]
+    (any-true? (map depend-on-any? relevant-names exprs))))
 
 (defmacro parlet
   [pool bindings & forms]
-  (let
-    [pairs (partition 2 bindings)
-     names (map first pairs)
-     vals  (map second pairs)]
-    `(let [[~@names] (p/pvalues ~pool ~@vals)] ~@forms))) ;; pattern match
+  (if (let-has-deps? bindings)
+    (throw (Exception. "this let form cannot be parallel. There are dependencies in the bindings"))
+    (let
+      [pairs (partition 2 bindings)
+       names (map first pairs)
+       vals  (map second pairs)]
+
+      ;; use pattern matching to express this
+      `(let [[~@names] (p/pvalues ~pool ~@vals)] ~@forms))))
 
 (defn prune
   "
