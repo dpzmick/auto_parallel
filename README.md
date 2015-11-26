@@ -67,7 +67,7 @@ discussed.
 The parlet macro detects dependencies. For example, the compiler shouldn't let
 us attempt to make this let parallel:
 
-    (parlet [a 1 b (+ a 1) b])
+    (parlet [a 1 b (+ a 1)] b)
 
     Exception this let form cannot be parallel. There are dependencies in the bindings
 
