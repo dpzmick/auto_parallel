@@ -15,15 +15,48 @@
           (<= lhead rhead) (recur (rest l) r (conj result lhead))
           true             (recur l (rest r) (conj result rhead)))))))
 
-(defn merge-sort-parexpr
-  [pool lst]
+(defn merge-sort
+  [lst]
   (if (= 1 (count lst))
     lst
     (let
-      [middle (/ (count lst) 2)
-       front  (take middle lst)
-       back   (drop middle lst)]
-      (ap/parexpr pool (merge-seqs (merge-sort-parexpr pool front) (merge-sort-parexpr pool back))))))
+      [middle (/ (count lst) 2)]
+      (let
+        [front  (merge-sort (take middle lst))
+         back   (merge-sort (drop middle lst))]
+        (merge-seqs front back)))))
+
+(defn merge-sort-parlet1
+  [lst]
+  (if (= 1 (count lst))
+    lst
+    (let
+      [middle (/ (count lst) 2)]
+      (ap/parlet
+        [front  (merge-sort (take middle lst))
+         back   (merge-sort (drop middle lst))]
+        (merge-seqs front back)))))
+
+(defn merge-sort-parlet
+  [lst]
+  (if (= 1 (count lst))
+    lst
+    (let
+      [middle (/ (count lst) 2)]
+      (ap/parlet
+        [front  (merge-sort-parlet (take middle lst))
+         back   (merge-sort-parlet (drop middle lst))]
+        (merge-seqs front back)))))
+
+; (defn merge-sort-parexpr
+;   [pool lst]
+;   (if (= 1 (count lst))
+;     lst
+;     (let
+;       [middle (/ (count lst) 2)
+;        front  (take middle lst)
+;        back   (drop middle lst)]
+;       (ap/parexpr pool (merge-seqs (merge-sort-parexpr pool front) (merge-sort-parexpr pool back))))))
 
 (defn merge-sort-futures [lst]
   (if (= 1 (count lst))

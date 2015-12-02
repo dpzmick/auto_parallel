@@ -5,13 +5,22 @@
 ;; when run this will full saturate the CPU, because each parexpr will get
 ;; evaluated in a fork/join fashion. This will very quickly create more tasks
 ;; than there are threads, and will give us parallelism
-(defn fib-parexpr
-  [pool n]
+; (defn fib-parexpr
+;   [pool n]
+;   (if (or (= 0 n) (= 1 n))
+;     1
+;     (ap/parexpr pool (+ (fib-parexpr pool (- n 1))
+;                         (fib-parexpr pool (- n 2))))))
+
+(defn fib-parlet [n]
   (if (or (= 0 n) (= 1 n))
     1
-    (ap/parexpr pool (+ (fib-parexpr pool (- n 1))
-                        (fib-parexpr pool (- n 2))))))
+    (ap/parlet
+      [m1 (fib-parlet (- n 1))
+       m2 (fib-parlet (- n 2))]
+      (+ m1 m2))))
 
+;; this will quickly loose the ability to create more threads
 (defn fib-future [n]
   (if (or (= 0 n) (= 1 n))
     1

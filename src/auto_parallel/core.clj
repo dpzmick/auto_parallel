@@ -148,7 +148,7 @@
        new-vals (map (fn [n] `(p/join ~n)) names)]
 
       ;; each val becomes a fork join task, each reference to the value becomes
-      ;; a (join task)
+      ;; (join task)
 
       ;; use pattern matching to express this
       `(let [[~@names] ~tasks] ~@(map #(replace-many names new-vals %) forms)))))
@@ -199,15 +199,3 @@
       `(parlet ~bindings ~(make-nested-lets e)))))
 
 (defmacro parexpr [expr] (make-nested-lets expr))
-
-; ;; TODO deal with maps
-; (defn replace-all
-;   "
-;   replace all occurrences of the subexpression to-replace with the subexpression
-;   replace-with in the expression expr
-;   "
-;   [expr to-replace replace-with]
-;   (cond
-;     (= expr to-replace) replace-with
-;     (sequential? expr) (map #(replace-all % to-replace replace-with) expr)
-;     :else expr))
