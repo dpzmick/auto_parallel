@@ -16,13 +16,7 @@
   (is (not (dependency? 'a '(let [a b] (a))))))
 
 (deftest dep-in-let
-  (is (dependency? 'a '(let [c a] c))))
-
-(deftest dep-in-let2
-  (is (dependency? 'a '(let [c d] a))))
-
-(deftest dep-in-let3
-  (is (dependency? 'a '(let [c d b a] a))))
-
-(deftest dep-in-let4
+  (is (dependency? 'a '(let [c a] c)))
+  (is (dependency? 'a '(let [c d] a)))
+  (is (dependency? 'a '(let [c d b a] a)))
   (is (dependency? 'a '(let [a a] a))))
