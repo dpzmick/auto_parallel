@@ -59,3 +59,7 @@
 (defreptest replace-nested-lets a b
   (let [c :d] (let [e :f] a))
   (let [c :d] (let [e :f] b)))
+
+(defreptest preserve-vector a b
+  [a b c]
+  [b b c])

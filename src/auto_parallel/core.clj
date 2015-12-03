@@ -82,7 +82,6 @@
    (replace-in-let e replacement (partition 2 (second expr)) (rest (rest expr))))
 
   ([e replacement bindings forms]
-   (println bindings forms)
    (let
      [first-name  (first  (first bindings))
       first-value (second (first bindings))
@@ -111,19 +110,26 @@
             [~first-name ~replaced-v]
             ~(replace-in-let e replacement (rest bindings) forms)))))))
 
-(defn replace-in-normal-expr [e replacement expr] (map #(replace-all e replacement %) expr))
-(defn replace-in-const       [e replacement expr] (if  (= e expr) replacement expr))
+;; is there a "map preserving input type" anywhere?
+(defn replace-in-list-expr [e replacement expr]
+  (map #(replace-all e replacement %) expr))
+
+(defn replace-in-vector-expr [e replacement expr]
+  (apply vector (replace-in-normal-expr e replacement expr)))
+
+(defn replace-in-const [e replacement expr] (if  (= e expr) replacement expr))
 
 (defn replace-in-expr
   [e replacement expr]
-  ; (println "replacing" e "with" replacement "in" expr)
   (if (sequential? expr)
 
     ;; we have a function call or some other form (like a vector or list
     ;; literal)
-    (if (= 'let* (first expr))
-      (replace-in-let e replacement expr)
-      (replace-in-normal-expr e replacement expr))
+    (cond
+      (= 'let* (first expr)) (replace-in-let e replacement expr)
+      (vector? expr)         (replace-in-vector-expr e replacement expr)
+      (list? expr)           (replace-in-normal-expr e replacement expr)
+      :else                  (throw (Exception. "this form is not supported")))
 
     ;; the expression is a single term
     (replace-in-const e replacement expr)))
@@ -139,7 +145,6 @@
 
 (defmacro parlet
   [bindings & forms]
-  ; (println "parlet for" bindings)
   (if (let-has-deps? bindings)
     (throw (Exception. "this let form cannot be parallel. There are dependencies in the bindings"))
     (let
@@ -151,8 +156,6 @@
 
       ;; each val becomes a fork join task, each reference to the value becomes
       ;; (join task)
-
-      ; (println "parlet for" bindings)
 
       ;; use pattern matching to express this
       `(let [[~@names] ~tasks] ~@(map #(replace-many names new-vals %) forms)))))
