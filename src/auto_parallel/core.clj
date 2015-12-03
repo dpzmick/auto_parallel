@@ -111,11 +111,11 @@
             ~(replace-in-let e replacement (rest bindings) forms)))))))
 
 ;; is there a "map preserving input type" anywhere?
-(defn replace-in-list-expr [e replacement expr]
+(defn replace-in-seq-expr [e replacement expr]
   (map #(replace-all e replacement %) expr))
 
 (defn replace-in-vector-expr [e replacement expr]
-  (apply vector (replace-in-normal-expr e replacement expr)))
+  (apply vector (replace-in-seq-expr e replacement expr)))
 
 (defn replace-in-const [e replacement expr] (if  (= e expr) replacement expr))
 
@@ -128,7 +128,7 @@
     (cond
       (= 'let* (first expr)) (replace-in-let e replacement expr)
       (vector? expr)         (replace-in-vector-expr e replacement expr)
-      (list? expr)           (replace-in-normal-expr e replacement expr)
+      (seq? expr)            (replace-in-seq-expr e replacement expr)
       :else                  (throw (Exception. "this form is not supported")))
 
     ;; the expression is a single term
