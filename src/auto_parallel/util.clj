@@ -12,3 +12,11 @@
 
 (defn macropprint   [expr] (pprint (macroexpand-all expr)))
 (defn macropprint-1 [expr] (pprint (macroexpand-1   expr)))
+
+(defn macropprint-steps [expr]
+  (println "STEP STARTS")
+  (pprint expr)
+  (let [form (macroexpand-1 expr)]
+    (if (= form expr)
+      nil
+      (recur form))))

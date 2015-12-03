@@ -1,6 +1,7 @@
 (ns auto-parallel.core
   (use [clojure.tools.trace])
   (use [auto-parallel.util])
+  (use [clojure.walk])
   (:require [auto-parallel.fork-join-par :as p]))
 
 ;; TODO handle map syntax, then I think I will have hit all of the syntax needed
@@ -20,7 +21,7 @@
 (def dep-in-expr?) ;; defined later
 
 ;; most binding forms expand to a let*, so do the macroexpand first
-(defn dependency?  [var-name expr] (dep-in-expr? var-name (macroexpand expr)))
+(defn dependency?  [var-name expr] (dep-in-expr? var-name (macroexpand-all expr)))
 (defn depend-on-any? [names expr] (any-true? (map #(dependency? % expr) names)))
 
 (defn dep-in-let?
@@ -67,7 +68,7 @@
 (def replace-in-expr) ;; defined later
 
 ;; most binding forms expand to a let*, so do the macroexpand first
-(defn replace-all    [e replacement expr] (replace-in-expr e replacement (macroexpand expr)))
+(defn replace-all    [e replacement expr] (replace-in-expr e replacement (macroexpand-all expr)))
 (defn replace-many   [es reps expr]
   (if (empty? es)
     expr
@@ -77,45 +78,45 @@
       (replace-all (first es) (first reps) expr))))
 
 (defn replace-in-let
-  ([e replacment expr] (replace-in-let e replacment (partition 2 (second expr)) (rest (rest expr))))
+  ([e replacement expr]
+   (replace-in-let e replacement (partition 2 (second expr)) (rest (rest expr))))
 
-  ([e replacment bindings forms]
-   (if (= 1 (count bindings))
-     ;; will only ever happen inside of the recursive call for the let
-     ;; expression when we still need to perform replacements in this env
-     (let
-       [first-name  (first  (first bindings))
-        first-value (second (first bindings))
-        replaced-v  (replace-all e replacment first-value)]
+  ([e replacement bindings forms]
+   (println bindings forms)
+   (let
+     [first-name  (first  (first bindings))
+      first-value (second (first bindings))
+      replaced-v  (replace-all e replacement first-value)]
+
+     ;; if we rebind the value, there is no dependency in anything
+     ;; inheriting this environment, just need to perform replacement in the
+     ;; binding, then emit the rest of the expression as is
+     (if (= first-name e)
        `(let
           [~first-name ~replaced-v]
-          ~@(map #(replace-all e replacment %) forms)))
+          (let
+            ~(apply vector (flatten (rest bindings)))
+            ~@forms))
 
-     ;; we still have some bindings to evaluate
-     (let
-       [first-name  (first  (first bindings))
-        first-value (second (first bindings))
-        replaced-v  (replace-all e replacment first-value)]
-
-       ;; if we rebind the value, there is no dependency in anything
-       ;; inheriting this environment, just need to perform replacement in the
-       ;; binding, then emit the rest of the expression as is
-       (if (= first-name e)
+       ;; otherwise, the binding may still depend on the name, some other
+       ;; binding might, or the body might
+       (if (= (count bindings) 1)
+         ;; last one
          `(let
             [~first-name ~replaced-v]
-            (let
-              ~(apply vector (flatten (rest bindings)))
-              ~@forms))
+            ~@(map #(replace-all e replacement %) forms))
 
-         ;; otherwise, the binding may still depend on the name, some other
-         ;; binding might, or the body might
-         `(let [~first-name ~replaced-v] ~(replace-in-let e replacment (rest bindings) forms)))))))
+         ;; still some to go
+         `(let
+            [~first-name ~replaced-v]
+            ~(replace-in-let e replacement (rest bindings) forms)))))))
 
 (defn replace-in-normal-expr [e replacement expr] (map #(replace-all e replacement %) expr))
 (defn replace-in-const       [e replacement expr] (if  (= e expr) replacement expr))
 
 (defn replace-in-expr
   [e replacement expr]
+  ; (println "replacing" e "with" replacement "in" expr)
   (if (sequential? expr)
 
     ;; we have a function call or some other form (like a vector or list
@@ -138,6 +139,7 @@
 
 (defmacro parlet
   [bindings & forms]
+  ; (println "parlet for" bindings)
   (if (let-has-deps? bindings)
     (throw (Exception. "this let form cannot be parallel. There are dependencies in the bindings"))
     (let
@@ -149,6 +151,8 @@
 
       ;; each val becomes a fork join task, each reference to the value becomes
       ;; (join task)
+
+      ; (println "parlet for" bindings)
 
       ;; use pattern matching to express this
       `(let [[~@names] ~tasks] ~@(map #(replace-many names new-vals %) forms)))))
