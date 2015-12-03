@@ -1,22 +1,12 @@
 (ns auto-parallel.core
+  (use [clojure.walk])
   (use [clojure.tools.trace])
   (use [auto-parallel.util])
-  (use [clojure.walk])
   (use [auto-parallel.replace])
   (:require [auto-parallel.fork-join-par :as p]))
 
 ;; TODO handle map syntax, then I think I will have hit all of the syntax needed
 ;; to be complete
-
-;; some utilities
-(defn any-true? [lst] (not (nil? (some true? lst))))
-
-(defn iterative-list-accum
-  ([lst] (iterative-list-accum lst [(list)]))
-  ([lst acc]
-   (if (empty? lst)
-     acc
-     (recur (rest lst) (conj acc (cons (first lst) (last acc)))))))
 
 ;; check for dependencies
 (def dep-in-expr?) ;; defined later
