@@ -1,0 +1,37 @@
+* random experiments with clojure
+** set game
+- clojure code shorter than ocaml version
+- blame 'apply' and things like that
+- lazy data structures make things easier
+** sorting
+- be careful with lazy eval, threads don't start without a doall
+
+* genetic algorithms
+** parallelism methods
+- master-slave
+  - slaves compute fitness, master maintains population and does crossover/generational updating
+- single individual per node, communicate w/ neighbors on topology
+  - topology matters a lot
+- multi-population with migration
+- hierarchical, mutli-population on a single node w/ migration. multi-population
+  between nodes w/ migration
+
+* automatic parallelism
+** I/O
+I/O can't be autoconcurrent in an easy way bc all I/O blocks threads unless you
+use I/O wrappers with callbacks, but if you are doing that, you are already
+dealing with concurrency.
+
+see: [[http://martintrojer.github.io/clojure/2013/07/07/coreasync-and-blocking-io/]]
+
+[[http://blog.lahteenmaki.net/2013/01/haskell-and-non-blocking-asynchronous-io.html][haskell solution (good)]]
+
+There's library called "Quasar" which adds fibers, but still doesn't use epoll
+in the VM. Needs quasar wrappers for I/O libraries.
+
+** computation
+*** TODO defparfun
+
+** discovery
+use a profiler to find opportunities for these parallelism through these macros
+
