@@ -30,8 +30,25 @@ There's library called "Quasar" which adds fibers, but still doesn't use epoll
 in the VM. Needs quasar wrappers for I/O libraries.
 
 ** computation
+*** TODO add granularity control to each macro
+For parlet, allow it to use any value defined before the parlet executes
+
+#+BEGIN_SRC clojure
+  (parlet
+
+   {:granularity
+    "bindings only evaulated in parallel if the granulatiry function returns true"
+    (fn [y z] (and (> x 100) (> y 100)))}
+
+   [a (foo y)
+    b (foo z)]
+
+   (+ a b))
+#+END_SRC
+
+Create similar granularity bindings for other macros.
+
 *** TODO defparfun
 
 ** discovery
 use a profiler to find opportunities for these parallelism through these macros
-
