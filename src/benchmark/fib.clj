@@ -55,7 +55,6 @@
 (defb small-futures (fib-future  small-fib))
 
 (def small-fib-benchmarks
-  (reify BenchmarkSuite
-    (toString [this] "small fib benchmarks")
-    (benchmarks [this]
-      [small-parexpr small-parlet small-parfun small-futures])))
+  (make-benchmark-suite
+    "small fib benchmarks"
+    [small-parexpr small-parlet small-parfun small-futures]))

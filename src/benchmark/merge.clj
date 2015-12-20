@@ -1,4 +1,5 @@
 (ns benchmark.merge
+  (:use benchmark.util)
   (:require [auto-parallel.core :as ap]))
 
 ;; helper
@@ -48,15 +49,15 @@
          back   (merge-sort-parlet (drop middle lst))]
         (merge-seqs front back)))))
 
-; (defn merge-sort-parexpr
-;   [pool lst]
-;   (if (= 1 (count lst))
-;     lst
-;     (let
-;       [middle (/ (count lst) 2)
-;        front  (take middle lst)
-;        back   (drop middle lst)]
-;       (ap/parexpr pool (merge-seqs (merge-sort-parexpr pool front) (merge-sort-parexpr pool back))))))
+(defn merge-sort-parexpr
+  [lst]
+  (if (= 1 (count lst))
+    lst
+    (let
+      [middle (/ (count lst) 2)
+       front  (take middle lst)
+       back   (drop middle lst)]
+      (ap/parexpr (merge-seqs (merge-sort-parexpr front) (merge-sort-parexpr back))))))
 
 (defn merge-sort-futures [lst]
   (if (= 1 (count lst))
@@ -68,16 +69,14 @@
       (merge-seqs @front @back))))
 
 ;; merge
-; (def n-merge 100000)
-; (def merge-list (doall (take n-merge (repeatedly #(rand-int n-merge)))))
-; (defb merge-recur   (merge-sort merge-list))
-; (defb merge-parlet1 (merge-sort-parlet1 merge-list))
-; (defb merge-parlet  (merge-sort-parlet merge-list))
-; (defb merge-futures (merge-sort-futures merge-list))
+(def n-merge 100000)
+(def merge-list (doall (take n-merge (repeatedly #(rand-int n-merge)))))
+(defb merge-recur   (merge-sort merge-list))
+(defb merge-parlet1 (merge-sort-parlet1 merge-list))
+(defb merge-parlet  (merge-sort-parlet merge-list))
+(defb merge-futures (merge-sort-futures merge-list))
 
-; (def merge-benchmarks [
-;                        merge-parlet
-;                        merge-recur
-;                        ; merge-parlet1
-;                        ;merge-futures ;; this isn't useful, runs out of memory
-;                        ])
+(def merge-benchmarks
+  (make-benchmark-suite
+    "merge benchmarks"
+    [merge-recur merge-parlet1 merge-parlet merge-futures]))

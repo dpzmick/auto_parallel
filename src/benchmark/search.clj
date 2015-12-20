@@ -33,7 +33,6 @@
 
 ;; define the benchmark suite exposed by this namespace
 (def search-benchmarks
-  (reify BenchmarkSuite
-    (toString [this] "search benchmarks")
-    (benchmarks [this]
-      [search-par-bench search-serial-bench])))
+  (make-benchmark-suite
+    "search-benchmarks"
+    [search-par-bench search-serial-bench]))

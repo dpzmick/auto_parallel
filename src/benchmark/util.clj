@@ -9,3 +9,7 @@
      (println ~n)
      (cr/bench ~e)))
 
+(defn make-benchmark-suite [n list-of-benchmarks]
+  (reify BenchmarkSuite
+    (toString [this] n)
+    (benchmarks [this] list-of-benchmarks)))
