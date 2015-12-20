@@ -71,3 +71,13 @@
       `(parlet ~bindings ~(make-nested-lets e)))))
 
 (defmacro parexpr [expr] (make-nested-lets expr))
+
+;; TODO evaluate use of -helper for naming, maybe want to use a new generated
+;; name
+;; TODO I wonder if making a bunch of copies of the method (via the helper) will
+;; hurt performance dramatically (because of extra memory usage)
+(defmacro defparfun [method-name formals body]
+  `(defn ~method-name ~formals
+     (let
+       [~(symbol (str method-name "-helper")) (fn ~formals ~body)]
+       (p/join (p/fork (p/new-task #(~(symbol (str method-name "-helper")) ~@formals)))))))

@@ -49,6 +49,16 @@ For parlet, allow it to use any value defined before the parlet executes
 Create similar granularity bindings for other macros.
 
 *** TODO defparfun
+** Every function call becomes a new task
+** hard to delay a join
+
+#+BEGIN_SRC clojure
+    (defparfun naive [a] (naive (- a 1)))
+
+    (defn naive-help [a] (naive (- a 1)))
+    (defn naive [a] (join (new-task #(naive-help a))))
+#+END_SRC
+** we don't get tail recursion anyway, so who cares if we make it impossible
 
 ** discovery
 use a profiler to find opportunities for these parallelism through these macros

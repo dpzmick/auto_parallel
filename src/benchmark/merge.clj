@@ -66,3 +66,18 @@
        front  (future (merge-sort-futures (take middle lst)))
        back   (future (merge-sort-futures (drop middle lst)))]
       (merge-seqs @front @back))))
+
+;; merge
+; (def n-merge 100000)
+; (def merge-list (doall (take n-merge (repeatedly #(rand-int n-merge)))))
+; (defb merge-recur   (merge-sort merge-list))
+; (defb merge-parlet1 (merge-sort-parlet1 merge-list))
+; (defb merge-parlet  (merge-sort-parlet merge-list))
+; (defb merge-futures (merge-sort-futures merge-list))
+
+; (def merge-benchmarks [
+;                        merge-parlet
+;                        merge-recur
+;                        ; merge-parlet1
+;                        ;merge-futures ;; this isn't useful, runs out of memory
+;                        ])
