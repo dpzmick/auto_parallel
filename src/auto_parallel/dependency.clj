@@ -1,6 +1,7 @@
 (ns auto-parallel.dependency
-  (use [clojure.walk])
-  (use [auto-parallel.util]))
+  (:use [auto-parallel.ast-crawl])
+  (:use [clojure.walk])
+  (:use [auto-parallel.util]))
 
 ;; check for dependencies
 (def dep-in-expr?) ;; defined later
@@ -10,7 +11,8 @@
 (defn depend-on-any? [names expr] (any-true? (map #(dependency? % expr) names)))
 
 (defn dep-in-let?
-  ([var-name expr] (dep-in-let? var-name (partition 2 (second expr)) (rest (rest expr))))
+  ([expr {var-name :var-name}]
+   (dep-in-let? var-name (partition 2 (second expr)) (rest (rest expr))))
 
   ([var-name bindings forms]
    (if (empty? bindings)
@@ -33,23 +35,20 @@
          (or (dependency? var-name first-value)
              (dep-in-let? var-name (rest bindings) forms)))))))
 
-(defn dep-in-normal-expr?  [var-name expr] (any-true? (map #(dependency? var-name %) expr)))
-(defn dep-in-const?        [var-name expr] (= var-name expr))
+(defn dep-in-normal-expr?  [expr {var-name :var-name}]
+  (any-true? (map #(dependency? var-name %) expr)))
 
-(defn dep-in-expr?
-  [var-name expr]
-  (if (sequential? expr)
+(defn dep-in-const? [expr {var-name :var-name}] (= var-name expr))
 
-    ;; we have a function call or some other form (like a vector or list
-    ;; literal)
-    (if (= 'let* (first expr))
-      (dep-in-let? var-name expr)
-      (dep-in-normal-expr? var-name expr))
+(defn dep-in-expr? [var-name expr]
+  (ast-crawl-expr
+    expr
+    {:let-cb        dep-in-let?
+     :vector-cb     dep-in-normal-expr?
+     :sequential-cb dep-in-normal-expr?
+     :const-cb      dep-in-const?}
+    {:var-name var-name}))
 
-    ;; the expression is a single term
-    (dep-in-const? var-name expr)))
-
-;; parlet
 (defn let-has-deps? [bindings]
   (let
     [pairs          (partition 2 bindings)
