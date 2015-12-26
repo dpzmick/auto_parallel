@@ -63,15 +63,11 @@
   (ast-crawl-expr
     expr
     ;; callbacks
-    {
-     :let-cb        replace-in-let
+    {:let-cb        replace-in-let
      :vector-cb     replace-in-vector
      :sequential-cb replace-in-seq
-     :const-cb      replace-in-const
-     }
+     :const-cb      replace-in-const}
 
     ;; args
-    {
-     :to-replace  e
-     :replacement replacement
-     }))
+    {:to-replace  e
+     :replacement replacement}))
