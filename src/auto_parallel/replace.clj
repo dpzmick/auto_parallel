@@ -1,5 +1,6 @@
 (ns auto-parallel.replace
-  (use [clojure.walk]))
+  (:use [clojure.walk])
+  (:use [auto-parallel.ast-crawl]))
 
 ;; replace-all
 (def replace-in-expr) ;; defined later
@@ -15,7 +16,7 @@
       (replace-all (first es) (first reps) expr))))
 
 (defn replace-in-let
-  ([e replacement expr]
+  ([expr {e :to-replace, replacement :replacement}]
    (replace-in-let e replacement (partition 2 (second expr)) (rest (rest expr))))
 
   ([e replacement bindings forms]
@@ -48,25 +49,29 @@
             ~(replace-in-let e replacement (rest bindings) forms)))))))
 
 ;; is there a "map preserving input type" anywhere?
-(defn replace-in-seq-expr [e replacement expr]
+(defn replace-in-seq [expr {e :to-replace, replacement :replacement}]
   (map #(replace-all e replacement %) expr))
 
-(defn replace-in-vector-expr [e replacement expr]
-  (vec (replace-in-seq-expr e replacement expr)))
+(defn replace-in-vector [expr args]
+  (vec (replace-in-seq expr args)))
 
-(defn replace-in-const [e replacement expr] (if  (= e expr) replacement expr))
+(defn replace-in-const [expr {e :to-replace, replacement :replacement}]
+  (if  (= e expr) replacement expr))
 
-(defn replace-in-expr
-  [e replacement expr]
-  (if (sequential? expr)
+(defn replace-in-expr [e replacement expr]
+  "replace all occurrences of e with replacement in expr"
+  (ast-crawl-expr
+    expr
+    ;; callbacks
+    {
+     :let-cb        replace-in-let
+     :vector-cb     replace-in-vector
+     :sequential-cb replace-in-seq
+     :const-cb      replace-in-const
+     }
 
-    ;; we have a function call or some other form (like a vector or list
-    ;; literal)
-    (cond
-      (= 'let* (first expr)) (replace-in-let e replacement expr)
-      (vector? expr)         (replace-in-vector-expr e replacement expr)
-      (seq? expr)            (replace-in-seq-expr e replacement expr)
-      :else                  (throw (Exception. "this form is not supported")))
-
-    ;; the expression is a single term
-    (replace-in-const e replacement expr)))
+    ;; args
+    {
+     :to-replace  e
+     :replacement replacement
+     }))
