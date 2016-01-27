@@ -28,47 +28,40 @@
 
 ;; ast functions
 (defn replace-in-let
-  ([expr {e :to-replace, replacement :replacement}]
-   (replace-in-let
-     e
-     replacement
-     (partition 2 (second expr))
-     (rest (rest expr))))
+  [bindings forms {e :to-replace, replacement :replacement :as args}]
+  (let
+    [first-name  (first  (first bindings))
+     first-value (second (first bindings))
+     replaced-v  (replace-all e replacement first-value)]
 
-  ([e replacement bindings forms ]
-   (let
-     [first-name  (first  (first bindings))
-      first-value (second (first bindings))
-      replaced-v  (replace-all e replacement first-value)]
+    ;; if we rebind the value, there is no dependency in anything
+    ;; inheriting this environment, just need to perform replacement in the
+    ;; binding, then emit the rest of the expression as is
+    (if (= first-name e)
+      `(let
+         [~first-name ~replaced-v]
+         (let
+           ~(vec (flatten (rest bindings)))
+           ~@forms))
 
-     ;; if we rebind the value, there is no dependency in anything
-     ;; inheriting this environment, just need to perform replacement in the
-     ;; binding, then emit the rest of the expression as is
-     (if (= first-name e)
-       `(let
-          [~first-name ~replaced-v]
-          (let
-            ~(vec (flatten (rest bindings)))
-            ~@forms))
+      ;; otherwise, the binding may still depend on the name, some other
+      ;; binding might, or the body might
+      (if (= (count bindings) 1)
+        ;; last one
+        `(let
+           [~first-name ~replaced-v]
+           ~@(map #(replace-all e replacement %) forms))
 
-       ;; otherwise, the binding may still depend on the name, some other
-       ;; binding might, or the body might
-       (if (= (count bindings) 1)
-         ;; last one
-         `(let
-            [~first-name ~replaced-v]
-            ~@(map #(replace-all e replacement %) forms))
+        ;; still some to go
+        `(let
+           [~first-name ~replaced-v]
+           ~(replace-in-let (rest bindings) forms args))))))
 
-         ;; still some to go
-         `(let
-            [~first-name ~replaced-v]
-            ~(replace-in-let e replacement (rest bindings) forms)))))))
-
-(defn replace-in-seq [expr {e :to-replace, replacement :replacement}]
+(defn replace-in-list [expr {e :to-replace, replacement :replacement}]
   (map #(replace-all e replacement %) expr))
 
 (defn replace-in-vector [expr args]
-  (vec (replace-in-seq expr args)))
+  (vec (replace-in-list expr args)))
 
 (defn replace-in-const [expr {e :to-replace, replacement :replacement}]
   (if (= e expr) replacement expr))
@@ -77,8 +70,8 @@
   (ast-crawl-expr
     expr
     ;; callbacks
-    {:let-cb        replace-in-let
-     :vector-cb     replace-in-vector
-     :sequential-cb replace-in-seq
-     :const-cb      replace-in-const}
+    {:let-cb    replace-in-let
+     :vector-cb replace-in-vector
+     :list-cb   replace-in-list
+     :const-cb  replace-in-const}
     args))

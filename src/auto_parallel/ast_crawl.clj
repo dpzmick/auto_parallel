@@ -6,6 +6,8 @@
   ([a _ b _ c] (defhandlerhelper a _ b _ c _ []))
   ([hname _ cb-name _ cb-args _ bindings]
    `(defn ~hname ~['expr 'callbacks 'callback-args]
+      (if (not (contains? ~'callbacks ~cb-name))
+        (throw (Exception. (str "no callback named " ~cb-name " defined"))))
       (let ~bindings
         ((~cb-name ~'callbacks) ~@(concat cb-args ['callback-args]))))))
 
