@@ -10,8 +10,13 @@
 
 (deftest test-let-cb
   (let
-    [cb (fn [e args] (is (and (= e '(let* silly)) (= args 'meow))))]
-    (ast-crawl-expr '(let* silly) {:let-cb cb} 'meow)))
+    [cb (fn [bindings forms args]
+          (is (= (first (first bindings)) 'silly1))
+          (is (= (second (first bindings)) 'silly2))
+          (is (= forms '(silly3)))
+          (is (= args 'meow)))]
+
+    (ast-crawl-expr '(let* [silly1 silly2] silly3) {:let-cb cb} 'meow)))
 
 (deftest test-vector-cb
   (let
@@ -21,4 +26,4 @@
 (deftest test-sequential-cb
   (let
     [cb (fn [e args] (is (and (= e '(foo bar)) (= args 'meow))))]
-    (ast-crawl-expr '(foo bar) {:sequential-cb cb} 'meow)))
+    (ast-crawl-expr '(foo bar) {:list-cb cb} 'meow)))
