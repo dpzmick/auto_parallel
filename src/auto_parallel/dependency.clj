@@ -11,7 +11,7 @@
 (defn depend-on-any? [names expr] (any-true? (map #(dependency? % expr) names)))
 
 (defn dep-in-let?
-  [bindings forms {var-name :var-name :as args}]
+  [bindings forms var-name]
    (if (empty? bindings)
      ;; check in all the sub forms of the let expression
      (any-true? (map #(dependency? var-name % ) forms))
@@ -30,12 +30,12 @@
          ;; otherwise, the binding may still depend on the name, or the rest of
          ;; the bindings might depend on the name
          (or (dependency? var-name first-value)
-             (dep-in-let? (rest bindings) forms args))))))
+             (dep-in-let? (rest bindings) forms var-name))))))
 
-(defn dep-in-normal-expr?  [expr {var-name :var-name}]
+(defn dep-in-normal-expr?  [expr var-name]
   (any-true? (map #(dependency? var-name %) expr)))
 
-(defn dep-in-const? [expr {var-name :var-name}] (= var-name expr))
+(defn dep-in-const? [expr var-name] (= var-name expr))
 
 (defn dep-in-expr? [var-name expr]
   (ast-crawl-expr
@@ -44,7 +44,7 @@
      :vector-cb dep-in-normal-expr?
      :list-cb   dep-in-normal-expr?
      :const-cb  dep-in-const?}
-    {:var-name var-name}))
+    var-name))
 
 (defn let-has-deps? [bindings]
   (let

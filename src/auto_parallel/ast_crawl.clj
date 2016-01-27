@@ -1,7 +1,5 @@
 (ns auto-parallel.ast-crawl)
 
-(use 'auto-parallel.util)
-
 (defn defhandlerhelper
   ([a _ b _ c] (defhandlerhelper a _ b _ c _ []))
   ([hname _ cb-name _ cb-args _ bindings]
@@ -13,7 +11,6 @@
 
 (defmacro defhandler [& args] (apply defhandlerhelper args))
 
-;; expands into multiple defhandler statements
 (defmacro defmanyhandlers [handler-names _ cb-names _ handler-args]
   `(do
      ~@(map (fn [handler-name cb-name]
@@ -22,15 +19,14 @@
                  ~'using-arguments    ~handler-args))
             handler-names cb-names)))
 
+;; define handlers for each type of expression
+;; callbacks are called with args specified ++ callback-args (from ast-crawl-expr)
 (defhandler let-handler
   for-callback-named :let-cb
   use-arguments (bindings forms)
   where [bindings (partition 2 (second expr))
          forms    (rest (rest expr))])
 
-;; define handlers for each type of expression
-;; callbacks will be called with args given ++ callback-args specified in
-;; ast-crawl-expr
 (defmanyhandlers (vector-handler list-handler const-handler)
   for-callbacks-named (:vector-cb :list-cb :const-cb)
   all-using-arguments (expr))
