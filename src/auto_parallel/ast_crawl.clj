@@ -45,8 +45,12 @@
      (cond
        (= 'let* (first expr)) (let-handler    expr callbacks callback-args)
        (vector? expr)         (vector-handler expr callbacks callback-args)
-       (list? expr)           (list-handler   expr callbacks callback-args)
-       :else                  (throw (Exception. "this form is not supported")))
+       (sequential? expr)     (list-handler   expr callbacks callback-args)
+       :else                  (throw
+                                (Exception.
+                                  (str
+                                    "this form is not supported: "
+                                    (first expr)))))
 
      ;; the expression is a single term
      (const-handler expr callbacks callback-args))))

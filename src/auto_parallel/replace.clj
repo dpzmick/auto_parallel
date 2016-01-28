@@ -66,12 +66,15 @@
 (defn replace-in-const [expr {e :to-replace, replacement :replacement}]
   (if (= e expr) replacement expr))
 
-(defn replace-in-expr [expr args]
-  (ast-crawl-expr
-    expr
-    ;; callbacks
-    {:let-cb    replace-in-let
-     :vector-cb replace-in-vector
-     :list-cb   replace-in-list
-     :const-cb  replace-in-const}
-    args))
+(defn replace-in-expr [expr {e :to-replace replacement :replacement :as args}]
+  ;; if we are trying to replace a whole expression, we may have found it
+  (if (= expr e)
+    'buhh
+    (ast-crawl-expr
+      expr
+      ;; callbacks
+      {:let-cb    replace-in-let
+       :vector-cb replace-in-vector
+       :list-cb   replace-in-list
+       :const-cb  replace-in-const}
+      args)))

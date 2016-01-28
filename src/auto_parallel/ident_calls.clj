@@ -1,4 +1,5 @@
 (ns auto-parallel.ident-calls
+  (:use [clojure.walk])
   (:use [auto-parallel.ast-crawl]))
 
 (def identify-inner-call-of)
@@ -49,7 +50,7 @@
   "
   [fname expr]
   (ast-crawl-expr
-    expr
+    (macroexpand-all expr)
     {:let-cb        identify-inner-call-let
      :vector-cb     identify-inner-call-vector
      :list-cb       identify-inner-call-list
