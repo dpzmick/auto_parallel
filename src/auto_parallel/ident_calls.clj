@@ -4,7 +4,7 @@
 (def identify-inner-call-of)
 
 ;; won't ever happen in a constant
-(defn identify-inner-call-const [expr _] (println "const" expr) nil)
+(defn identify-inner-call-const [expr _] nil)
 
 (defn identify-inner-call-vector [expr fname]
   (first (map #(identify-inner-call-of fname %) expr)))
