@@ -1,6 +1,5 @@
 (ns auto-parallel.fork-join-par
-  (:import java.util.concurrent.ForkJoinPool)
-  (:import java.util.concurrent.RecursiveTask))
+  (:import (java.util.concurrent RecursiveTask)))
 
 (defn new-task
   "

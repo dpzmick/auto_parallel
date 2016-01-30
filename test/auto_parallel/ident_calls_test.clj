@@ -1,6 +1,6 @@
 (ns auto-parallel.ident-calls-test
-  (:use auto-parallel.ident-calls)
-  (:use clojure.test))
+  (:require [auto-parallel.ident-calls :refer :all]
+            [clojure.test :refer :all]))
 
 (deftest vector-tests
   (is (= '(foo meow) (identify-inner-call-of 'foo '[(foo meow) bar car])))

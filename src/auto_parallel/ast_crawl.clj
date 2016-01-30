@@ -20,7 +20,8 @@
             handler-names cb-names)))
 
 ;; define handlers for each type of expression
-;; callbacks are called with args specified ++ callback-args (from ast-crawl-expr)
+;; callbacks are called with:
+;; args specified ++ callback-args (from ast-crawl-expr)
 (defhandler let-handler
   for-callback-named :let-cb
   use-arguments (bindings forms)
@@ -33,12 +34,12 @@
 
 ;; TODO map syntax
 (defn ast-crawl-expr
+  "
+  Crawls the AST for a given expression, calling the callback functions with
+  callback-args on each subexpression.
+  "
   ([expr callbacks] (ast-crawl-expr expr callbacks nil))
   ([expr callbacks callback-args]
-   "
-   Crawls the AST for a given expression, calling the callback functions with
-   callback-args on each subexpression.
-   "
    (if (sequential? expr)
      ;; we have a function call or some other form (like a vector or list
      ;; literal)

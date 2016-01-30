@@ -1,7 +1,4 @@
-(ns auto-parallel.replace-test
-  (:use auto-parallel.replace)
-  (:use clojure.walk)
-  (:use clojure.test))
+(ns auto-parallel.replace-test)
 
 ;; do the macroexpand to give everything the same names
 (defmacro defreptest [n e r input output]

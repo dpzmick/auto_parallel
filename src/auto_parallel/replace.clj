@@ -1,8 +1,8 @@
 (ns auto-parallel.replace
-  (:use [clojure.walk])
-  (:use [auto-parallel.ast-crawl]))
+  (:require [auto-parallel.ast-crawl :refer :all]
+            [clojure.walk :refer :all]))
 
-(def replace-in-expr) ;; defined later
+(declare replace-in-expr) ;; defined later
 
 ;; most binding forms expand to a let*, so do the macroexpand first
 (defn replace-all
@@ -58,7 +58,8 @@
            ~(replace-in-let (rest bindings) forms args))))))
 
 (defn replace-in-list [expr {e :to-replace, replacement :replacement}]
-  (map #(replace-all e replacement %) expr))
+  (if (= e replacement) 'buhh
+    (map #(replace-all e replacement %) expr)))
 
 (defn replace-in-vector [expr args]
   (vec (replace-in-list expr args)))
@@ -68,13 +69,11 @@
 
 (defn replace-in-expr [expr {e :to-replace replacement :replacement :as args}]
   ;; if we are trying to replace a whole expression, we may have found it
-  (if (= expr e)
-    'buhh
-    (ast-crawl-expr
-      expr
-      ;; callbacks
-      {:let-cb    replace-in-let
-       :vector-cb replace-in-vector
-       :list-cb   replace-in-list
-       :const-cb  replace-in-const}
-      args)))
+  (ast-crawl-expr
+    expr
+    ;; callbacks
+    {:let-cb    replace-in-let
+     :vector-cb replace-in-vector
+     :list-cb   replace-in-list
+     :const-cb  replace-in-const}
+    args))

@@ -1,6 +1,6 @@
 (ns auto-parallel.ast-crawl-test
-  (:use auto-parallel.ast-crawl)
-  (:use clojure.test))
+  (:require [auto-parallel.ast-crawl :refer :all]
+            [clojure.test :refer :all]))
 
 ;; test that the callbacks get called with the right value and the right args
 (deftest test-const-cb

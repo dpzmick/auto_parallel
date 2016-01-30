@@ -1,8 +1,8 @@
 (ns auto-parallel.ident-calls
-  (:use [clojure.walk])
-  (:use [auto-parallel.ast-crawl]))
+  (:require [auto-parallel.ast-crawl :refer :all]
+            [clojure.walk :refer :all]))
 
-(def identify-inner-call-of)
+(declare identify-inner-call-of)
 
 ;; won't ever happen in a constant
 (defn identify-inner-call-const [expr _] nil)
@@ -31,16 +31,14 @@
       [first-name  (first  (first bindings))
        first-value (second (first bindings))
        first-child (identify-inner-call-of fname first-value)]
-      (if (not (nil? first-child))
+      (if-not (nil? first-child)
         ;; we can return the first child
         first-child
 
         ;; we need to keep looking
-        (if (= first-name fname)
-          ;; if the names are the same, the function has been rebound from this
-          ;; point on
-          nil
-
+        ;; if the names are the same, the function has been rebound from this
+        ;; point on
+        (when-not (= first-name fname)
           ;; otherwise, keep looking
           (identify-inner-call-let (rest bindings) forms fname))))))
 

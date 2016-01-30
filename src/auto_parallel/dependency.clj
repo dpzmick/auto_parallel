@@ -1,10 +1,10 @@
 (ns auto-parallel.dependency
-  (:use [auto-parallel.ast-crawl])
-  (:use [clojure.walk])
-  (:use [auto-parallel.util]))
+  (:require [auto-parallel.ast-crawl :refer :all]
+            [auto-parallel.util :refer :all]
+            [clojure.walk :refer :all]))
 
 ;; check for dependencies
-(def dep-in-expr?) ;; defined later
+(declare dep-in-expr?) ;; defined later
 
 ;; most binding forms expand to a let*, so do the macroexpand first
 (defn dependency?  [var-name expr] (dep-in-expr? var-name (macroexpand-all expr)))

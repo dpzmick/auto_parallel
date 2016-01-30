@@ -1,6 +1,6 @@
 (ns auto-parallel.dependency-test
-  (:use auto-parallel.dependency)
-  (:use clojure.test))
+  (:require [auto-parallel.dependency :refer :all]
+            [clojure.test :refer :all]))
 
 ;; dependency?
 (deftest simple-no-dep

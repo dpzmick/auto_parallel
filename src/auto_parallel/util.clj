@@ -1,6 +1,6 @@
 (ns auto-parallel.util
-  (use [clojure.walk])
-  (use [clojure.pprint]))
+  (:require [clojure.pprint :refer :all]
+            [clojure.walk :refer :all]))
 
 (defn any-true? [lst] (not (nil? (some true? lst))))
 
@@ -12,7 +12,8 @@
      (recur (rest lst) (conj acc (cons (first lst) (last acc)))))))
 
 (defn slow-function
-  "returns a function which waits for a while, then returns the result of the no argument function"
+  "returns a function which waits for a while, then returns the result of the no
+  argument function"
   [how-slow fun]
   (fn []
     (do
@@ -26,6 +27,5 @@
   (println "STEP STARTS")
   (pprint expr)
   (let [form (macroexpand-1 expr)]
-    (if (= form expr)
-      nil
+    (when-not (= form expr)
       (recur form))))
