@@ -8,6 +8,9 @@
 (def multiple-bindings
   "this let has multiple bindings, please run expand-lets first")
 
+(def logging false)
+(defn log [& args] (if logging (apply println args)))
+
 (declare crawl)
 
 ;; helpful
@@ -16,7 +19,7 @@
 (defn- if-false    [expr] (first (rest (rest (rest expr)))))
 
 (defn- handle-forms [forms f]
-  (println "handle-forms" forms f)
+  (log "handle-forms" forms f)
   (let
     [forms-crawled  (map #(crawl % f) forms)
      forms-bindings (mapcat :bindings forms-crawled)
@@ -25,8 +28,10 @@
      forms-forms    (map :forms forms-crawled)]
 
     (if (empty? forms-bindings)
-      ;; if there are no bindings, just stick the forms in normally
-      `(do ~@forms)
+      ;; if there are no bindings, just stick the forms
+      ;; we still need to use forms-forms because these might have been modified
+      ;; in some way in the recursion, even without bindings
+      `(do ~@forms-forms)
 
       ;; there they are bindings, bind then, then stick in the new forms
       `(let
@@ -39,7 +44,7 @@
 ;; any bindings coming from the evaluation of the forms can be placed in a new
 ;; let following the existing let (or at the end of this let)
 (defn- crawl-let [bindings forms f]
-  (println "crawl-let" bindings forms f)
+  (log "crawl-let" bindings forms f)
   (if-not (= 1 (count bindings))
     (throw (Exception. multiple-bindings)))
 
@@ -75,8 +80,8 @@
       )))
 
 
-(defn- crawl-list [expr [f]]
-  (println "crawl-list" expr f)
+(defn- crawl-list [expr f]
+  (log "crawl-list" expr f)
   (cond
     ;; found flow control
     (= (first expr) 'if)
@@ -137,16 +142,22 @@
        })))
 
 (defn- crawl-vector [expr f]
-  {
-   :bindings []
-   :forms (mapv #(crawl % f) expr)
-   })
+  (log "crawl-vector" expr f)
+  (let
+    [children          (map #(crawl % f) expr)
+     children-bindings (mapcat :bindings children)
+     children-forms    (map :forms children)]
+    {
+     :bindings children-bindings
+     :forms (vec children-forms)
+     }))
 
 (defn- crawl-const [expr _]
-  (println "crawl-const" expr)
+  (log "crawl-const" expr)
   {:bindings [] :forms expr})
 
 (defn- crawl [expr f]
+  (log "crawl" (macroexpand-all expr) f)
   (ast-crawl-expr
     (macroexpand-all expr)
     {
@@ -160,6 +171,10 @@
 (defn move-call-to-header
   "
   moves all function calls in a ''basic block'' to the header of the basic block
+
+  After running this pass, every call to the provided function will be bound to
+  a value in a let expression which has no dependencies on the value returned by
+  the function call
   "
   [expr f]
   (let
