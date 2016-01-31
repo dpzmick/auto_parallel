@@ -8,8 +8,7 @@
 (def multiple-bindings
   "this let has multiple bindings, please run expand-lets first")
 
-(def logging false)
-(defn log [& args] (if logging (apply println args)))
+(defn- log [& args] (if false (apply println args)))
 
 (declare crawl)
 
@@ -168,7 +167,7 @@
      }
     f))
 
-(defn move-call-to-header
+(defn move-calls-to-header
   "
   moves all function calls in a ''basic block'' to the header of the basic block
 
@@ -191,4 +190,4 @@
          ~(:forms ick)))))
 
 
-(defmacro test-move-call-to-header [f expr] (crawl expr f))
+(defmacro test-move-calls-to-header [f expr] (crawl expr f))

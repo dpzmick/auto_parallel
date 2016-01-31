@@ -1,5 +1,6 @@
 (ns benchmark.merge
   (:use benchmark.util)
+  (:require [clojure.pprint :refer :all])
   (:require [auto-parallel.core :as ap]))
 
 ;; helper
@@ -68,6 +69,15 @@
        back   (future (merge-sort-futures (drop middle lst)))]
       (merge-seqs @front @back))))
 
+(ap/defparfun merge-sort-parfun [lst]
+  (if (= 1 (count lst))
+    lst
+    (let
+      [middle (/ (count lst) 2)
+       front  (merge-sort-parfun (take middle lst))
+       back   (merge-sort-parfun (drop middle lst))]
+      (merge-seqs front back))))
+
 ;; merge
 (def n-merge 100000)
 (def merge-list (doall (take n-merge (repeatedly #(rand-int n-merge)))))
@@ -75,8 +85,11 @@
 (defb merge-parlet1 (merge-sort-parlet1 merge-list))
 (defb merge-parlet  (merge-sort-parlet merge-list))
 (defb merge-futures (merge-sort-futures merge-list))
+(defb merge-parfun  (merge-sort-parfun merge-list))
 
+;; don't run futures version, it will run out of memory
 (def merge-benchmarks
   (make-benchmark-suite
     "merge benchmarks"
-    [merge-recur merge-parlet1 merge-parlet merge-futures]))
+    ;[merge-recur merge-parlet1 merge-parlet]))
+    [merge-recur merge-parfun]))

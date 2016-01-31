@@ -1,7 +1,5 @@
 (ns benchmark.core
   (:use benchmark.util)
-  (:use benchmark.search)
-  (:use benchmark.fib)
   (:use benchmark.merge)
   (:require [criterium.core :as cr]))
 
@@ -25,7 +23,4 @@
   ; (add-benchmarks search-benchmarks)
   ; (add-benchmarks large-fib-benchmarks)
   ; (add-benchmarks small-fib-benchmarks)
-  (add-benchmarks merge-benchmarks)
-
-  (println "Benchmark starting")
-  (run-benchmarks))
+  (run-suite merge-benchmarks))
