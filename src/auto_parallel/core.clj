@@ -5,6 +5,7 @@
             [auto-parallel.bb-edit :refer :all]
             [auto-parallel.expand-lets :refer :all]
             [auto-parallel.calls-to-tasks :refer :all]
+            [auto-parallel.simplify-ast :refer :all]
             [auto-parallel.replace :refer :all]))
 
 (def dependency-error
@@ -78,14 +79,30 @@
 
 (defn add-do [forms] `(do ~forms))
 
+;; can't treat functions like first class objects here
+;; the macro can only parallelize from the call site, if the call site is
+;; actually the call site
 (defmacro defparfun [fname args forms]
   (let
     [task-name (symbol (str fname "-task"))
 
+     ;; calling simplify too many times probably
+     ;; calling after every pass
      body (-> (add-do forms)
+
+              ;; don't call after expand-lets
+              ;; we need to tree to have the properties it does at the moment
               expand-lets
               (move-calls-to-header fname)
-              (calls-to-tasks fname task-name))]
+              (simplify-ast)
+
+              (calls-to-tasks fname task-name)
+
+              ;; calling twice to try and exploit any additional simplification
+              ;; opportunities
+              (simplify-ast)
+              (simplify-ast)
+              )]
 
     `(do
        ;; define the task function

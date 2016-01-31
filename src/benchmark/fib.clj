@@ -13,6 +13,13 @@
 ;     (ap/parexpr (+ (fib-parexpr (- n 1))
 ;                    (fib-parexpr (- n 2))))))
 
+(defn fib [n]
+  (if (or (= 0 n) (= 1 n))
+    1
+    (+
+     (fib (- n 1))
+     (fib (- n 2)))))
+
 (defn fib-parlet [n]
   (if (or (= 0 n) (= 1 n))
     1
@@ -24,9 +31,13 @@
 (ap/defparfun fib-parfun [n]
   (if (or (= 0 n) (= 1 n))
     1
-    (+
-     (fib-parfun (- n 1))
-     (fib-parfun (- n 2)))))
+    (if (> n 30)
+      (+
+       (fib-parfun (- n 1))
+       (fib-parfun (- n 2)))
+      (+
+       (fib (- n 1))
+       (fib (- n 2))))))
 
 ;; we quickly run out of threads with this
 (defn fib-future [n]

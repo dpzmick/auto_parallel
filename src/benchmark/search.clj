@@ -2,6 +2,7 @@
   (:use benchmark.util)
   (:require [auto-parallel.core :as ap]))
 
+;; getting this to compile too some doing
 (ap/defparfun search-par [value lst]
   (cond
     (> 1 (count lst)) false
@@ -25,8 +26,8 @@
                           (or (search-serial value a) (search-serial value b))))))
 
 ;; define all of the possible benchmarks for this namespace
-(def n-search 100)
-(def search-list (doall (take n-search (repeatedly #(rand-int n-search)))))
+(def n-search 1000000)
+(def search-list (vec (take n-search (repeatedly #(rand-int n-search)))))
 
 (defb search-par-bench (search-par 1 search-list))
 (defb search-serial-bench (search-serial 1 search-list))
