@@ -8,18 +8,18 @@
 (def multiple-bindings
   "this let has multiple bindings, please run expand-lets first")
 
-(declare move-call-to-header)
+(declare crawl)
 
 ;; helpful
-(defn conditional [expr] (first (rest expr)))
-(defn if-true     [expr] (first (rest (rest expr))))
-(defn if-false    [expr] (first (rest (rest (rest expr)))))
+(defn- conditional [expr] (first (rest expr)))
+(defn- if-true     [expr] (first (rest (rest expr))))
+(defn- if-false    [expr] (first (rest (rest (rest expr)))))
 
-(defn handle-forms [forms f bb-level]
-  (println "handle-forms" forms f bb-level)
+(defn- handle-forms [forms f]
+  (println "handle-forms" forms f)
   (let
-    [forms-crawled  (map #(move-call-to-header % f bb-level) forms)
-     forms-bindings (apply concat (map :bindings forms-crawled))
+    [forms-crawled  (map #(crawl % f) forms)
+     forms-bindings (mapcat :bindings forms-crawled)
      forms-names    (map first forms-bindings)
      forms-values   (map second forms-bindings)
      forms-forms    (map :forms forms-crawled)]
@@ -38,15 +38,15 @@
 ;; of the values can be put into a new let coming before this let
 ;; any bindings coming from the evaluation of the forms can be placed in a new
 ;; let following the existing let (or at the end of this let)
-(defn crawl-let [bindings forms [f bb-level]]
-  (println "crawl-let" bindings forms f bb-level)
+(defn- crawl-let [bindings forms f]
+  (println "crawl-let" bindings forms f)
   (if-not (= 1 (count bindings))
     (throw (Exception. multiple-bindings)))
 
   (let
     [names          (map first bindings)
-     values-crawled (map #(move-call-to-header % f bb-level) (map second bindings))
-     values-bs      (apply concat (map :bindings values-crawled))
+     values-crawled (map #(crawl % f) (map second bindings))
+     values-bs      (mapcat :bindings values-crawled)
      values-forms   (map :forms values-crawled)]
 
 
@@ -58,7 +58,7 @@
        :forms
       `(let
          ~(make-bindings names (map second bindings))
-         ~(handle-forms forms f bb-level))
+         ~(handle-forms forms f))
        }
 
       ;; if there are bindings, emit a let to handle those bindings, then emit
@@ -70,25 +70,25 @@
           ~(make-bindings (map first values-bs) (map second values-bs))
           (let
             ~(make-bindings names values-forms)
-            ~(handle-forms forms f bb-level)))
+            ~(handle-forms forms f)))
        }
       )))
 
 
-(defn crawl-list [expr [f bb-level]]
-  (println "crawl-list" expr f bb-level)
+(defn- crawl-list [expr [f]]
+  (println "crawl-list" expr f)
   (cond
     ;; found flow control
     (= (first expr) 'if)
     (let
       ;; we already crawled all of the bindings here, so don't worry about them
-      [it-crawl    (move-call-to-header (if-true expr)  f (inc bb-level))
+      [it-crawl    (crawl (if-true expr)  f)
        it-bindings (:bindings it-crawl)
        it-forms    (:forms it-crawl)
        it-names    (map first it-bindings)
        it-values   (map second it-bindings)
 
-       if-crawl    (move-call-to-header (if-false expr) f (inc bb-level))
+       if-crawl    (crawl (if-false expr) f)
        if-bindings (:bindings if-crawl)
        if-forms    (:forms if-crawl)
        if-names    (map first if-bindings)
@@ -115,10 +115,10 @@
     (= (first expr) f)
     (let
       [my-name        (gensym "expr")
-       args-crawled   (map #(move-call-to-header % f bb-level) (rest expr))
+       args-crawled   (map #(crawl % f) (rest expr))
        my-expr        (cons f (map :forms args-crawled))
        my-binding     (list my-name my-expr)
-       their-bindings (apply concat (map :bindings args-crawled))]
+       their-bindings (mapcat :bindings args-crawled)]
       {
        :bindings (reverse (cons my-binding their-bindings))
        :forms my-name
@@ -128,45 +128,52 @@
     ;; fight with the multiple return anti-pattern
     :else
     (let
-      [children (map #(move-call-to-header % f bb-level) expr)
-       all-bs   (apply concat (map :bindings children))
+      [children (map #(crawl % f) expr)
+       all-bs   (mapcat :bindings children)
        forms    (map :forms children)]
       {
        :bindings all-bs
        :forms forms
        })))
 
-(defn crawl-const [expr [_ bb-level]]
-  (println "crawl-const" expr bb-level)
+(defn- crawl-vector [expr f]
+  {
+   :bindings []
+   :forms (mapv #(crawl % f) expr)
+   })
+
+(defn- crawl-const [expr _]
+  (println "crawl-const" expr)
   {:bindings [] :forms expr})
+
+(defn- crawl [expr f]
+  (ast-crawl-expr
+    (macroexpand-all expr)
+    {
+     :let-cb    crawl-let
+     :vector-cb crawl-vector
+     :list-cb   crawl-list
+     :const-cb  crawl-const
+     }
+    f))
 
 (defn move-call-to-header
   "
   moves all function calls in a ''basic block'' to the header of the basic block
   "
-  ([expr f]
-   (let
-     [ick      (move-call-to-header expr f 0)
-      bindings (:bindings ick)
-      names    (map first bindings)
-      values   (map second bindings)]
+  [expr f]
+  (let
+    [ick      (crawl expr f)
+     bindings (:bindings ick)
+     names    (map first bindings)
+     values   (map second bindings)]
 
-     ;; emit the top level bindings
-     (if (empty? bindings)
-       `~(:forms ick)
-       `(let
-          ~(make-bindings names values)
-          ~(:forms ick)))))
+    ;; emit the top level bindings
+    (if (empty? bindings)
+      `~(:forms ick)
+      `(let
+         ~(make-bindings names values)
+         ~(:forms ick)))))
 
-  ([expr f bb-level]
-   (ast-crawl-expr
-     (macroexpand-all expr)
-     {
-      :let-cb    crawl-let
-      :vector-cb crawl-vector
-      :list-cb   crawl-list
-      :const-cb  crawl-const
-      }
-     [f bb-level])))
 
-(defmacro abuse [f expr] (move-call-to-header expr f))
+(defmacro test-move-call-to-header [f expr] (crawl expr f))

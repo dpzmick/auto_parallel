@@ -7,8 +7,11 @@
 (declare dep-in-expr?) ;; defined later
 
 ;; most binding forms expand to a let*, so do the macroexpand first
-(defn dependency?  [var-name expr] (dep-in-expr? var-name (macroexpand-all expr)))
-(defn depend-on-any? [names expr] (any-true? (map #(dependency? % expr) names)))
+(defn dependency? [var-name expr]
+  (dep-in-expr? var-name (macroexpand-all expr)))
+
+(defn depend-on-any? [names expr]
+  (any-true? (map #(dependency? % expr) names)))
 
 (defn dep-in-let?
   [bindings forms var-name]

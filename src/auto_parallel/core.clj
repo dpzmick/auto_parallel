@@ -1,6 +1,7 @@
 (ns auto-parallel.core
   (:require [auto-parallel.dependency :refer :all]
             [auto-parallel.ident-calls :refer :all]
+            [auto-parallel.util :refer :all]
             [auto-parallel.replace :refer :all]))
 
 (def dependency-error
@@ -72,3 +73,48 @@
 
 (defmacro parexpr [expr] (make-nested-lets expr))
 
+;; first step, move each function call into a let binding in the immediate
+;; vicinity of the function call
+
+; (defmacro defparfun [method-name formals body]
+;   ;; replace all recursive calls
+;   (let [rep-body (replace-all-calls method-name body)]
+;     `(defn ~method-name ~formals ~rep-body)))
+
+; (defn fib [n]
+;   (if (<= 1 n)
+;     1
+;     (+ (fib (- n 1)) (fib (- n 2)))))
+
+; ;; can't reorder in this way
+; (defn fib [n]
+;   (let
+;     [l (fib (- n 1))
+;      r (fib (0 n 2))]
+;   (if (<= 1 n)
+;     1
+;     (+ l r))))
+
+; ;; but this isn't useful
+; (defn fib [n]
+;   (if (<= 1 n)
+;     1
+;     (+
+;      (let
+;        [l (fib (- n 1))]
+;       l)
+;     (let
+;       [r (fib (- n 2))]
+;       r))))
+
+; ;; I really need it to do this:
+; (defn fib [n]
+;   (if (<= 1 n)
+;     1
+;     ;; how do I know to put the fib calls here?
+;     ;; how do I know they can both go here?
+;     ;; what phases can I use? Should I create a let-reordering phase that can
+;     ;; compress lets with no flow control
+;     (let [l (fib (- n 1))
+;           r (fib (- n 2))]
+;       (+ l r))))

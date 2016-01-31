@@ -30,7 +30,7 @@
     (when-not (= form expr)
       (recur form))))
 
-(defn zip [a b] (map #(list %1 %2) a b))
+(defn zip [a b] (map list a b))
 
 (defn make-bindings
   "
@@ -39,4 +39,3 @@
   "
   [names values]
   (vec (apply concat (zip names values))))
-
