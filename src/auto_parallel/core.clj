@@ -1,17 +1,16 @@
 (ns auto-parallel.core
-  (use [clojure.tools.trace])
-  (use [auto-parallel.util])
-  (use [auto-parallel.replace])
-  (use [auto-parallel.dependency])
-  (:require [auto-parallel.fork-join-par :as p]))
+  (:require [auto-parallel.dependency :refer :all]
+            [auto-parallel.ident-calls :refer :all]
+            [auto-parallel.replace :refer :all]))
 
-;; TODO handle map syntax, then I think I will have hit all of the syntax needed
-;; to be complete
+(def dependency-error
+  "this let form cannot be parallel. There are dependencies in the bindings")
 
 (defmacro parlet
   [bindings & forms]
   (if (let-has-deps? bindings)
-    (throw (Exception. "this let form cannot be parallel. There are dependencies in the bindings"))
+    (throw (Exception. dependency-error))
+
     (let
       [pairs    (partition 2 bindings)
        names    (map first pairs)
@@ -23,8 +22,9 @@
       ;; (join task)
 
       ;; use pattern matching to express this
-      `(let [[~@names] ~tasks] ~@(map #(replace-many names new-vals %) forms)))))
-
+      `(let
+         ~(make-bindings names tasks)
+         ~@(map #(replace-many names new-vals %) forms)))))
 
 ;; parexpr
 ;; make it easier to play with syntax tree
@@ -72,12 +72,3 @@
 
 (defmacro parexpr [expr] (make-nested-lets expr))
 
-;; TODO evaluate use of -helper for naming, maybe want to use a new generated
-;; name
-;; TODO I wonder if making a bunch of copies of the method (via the helper) will
-;; hurt performance dramatically (because of extra memory usage)
-(defmacro defparfun [method-name formals body]
-  `(defn ~method-name ~formals
-     (let
-       [~(symbol (str method-name "-helper")) (fn ~formals ~body)]
-       (p/join (p/fork (p/new-task #(~(symbol (str method-name "-helper")) ~@formals)))))))

@@ -30,7 +30,7 @@
 
       ;; there they are bindings, bind then, then stick in the new forms
       `(let
-         [[~@forms-names] ~forms-values]
+         ~(make-bindings forms-names forms-values)
          ~@forms-forms))))
 
 ;; assume that all lets have a single binding, need to run expand-lets first
@@ -57,7 +57,7 @@
        :bindings []
        :forms
       `(let
-         [[~@names] ~(map second bindings)]
+         ~(make-bindings names (map second bindings))
          ~(handle-forms forms f bb-level))
        }
 
@@ -67,9 +67,10 @@
        :bindings []
        :forms
        `(let
-          [[~@(map first values-bs)] ~(map second values-bs)]
+          ~(make-bindings (map first values-bs) (map second values-bs))
           (let
-            [[~@names] ~@values-forms]))
+            ~(make-bindings names values-forms)
+            ~(handle-forms forms f bb-level)))
        }
       )))
 
@@ -100,13 +101,8 @@
 
        ;; include the basic block level in the new header for debugging
        `(if ~(conditional expr)
-          (let [bb# ~(inc bb-level)
-                [~@it-names] ~it-values]
-            ~it-forms)
-
-          (let [bb# ~(inc bb-level)
-                [~@if-names] ~if-values]
-            ~if-forms))
+          (let ~(make-bindings it-names it-values) ~it-forms)
+          (let ~(make-bindings if-names if-values) ~if-forms))
        })
 
     ;; found one of these function calls
@@ -156,9 +152,11 @@
       values   (map second bindings)]
 
      ;; emit the top level bindings
-     `(let
-        [bb# 0 [~@names] ~values]
-        ~(:forms ick))))
+     (if (empty? bindings)
+       `~(:forms ick)
+       `(let
+          ~(make-bindings names values)
+          ~(:forms ick)))))
 
   ([expr f bb-level]
    (ast-crawl-expr

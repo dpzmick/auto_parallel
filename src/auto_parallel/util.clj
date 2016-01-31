@@ -29,3 +29,14 @@
   (let [form (macroexpand-1 expr)]
     (when-not (= form expr)
       (recur form))))
+
+(defn zip [a b] (map #(list %1 %2) a b))
+
+(defn make-bindings
+  "
+  destructing is hard to read, and makes vectors all over the place
+  use this to make a list of bindings from names and values
+  "
+  [names values]
+  (vec (apply concat (zip names values))))
+
