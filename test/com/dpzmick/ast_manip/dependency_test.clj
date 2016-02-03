@@ -1,5 +1,5 @@
-(ns auto-parallel.dependency-test
-  (:require [auto-parallel.dependency :refer :all]
+(ns com.dpzmick.ast-manip.dependency-test
+  (:require [com.dpzmick.ast-manip.dependency :refer :all]
             [clojure.test :refer :all]))
 
 ;; dependency?

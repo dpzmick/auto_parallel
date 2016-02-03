@@ -1,5 +1,5 @@
-(ns auto-parallel.replace-test
-  (:require [auto-parallel.replace :refer :all]
+(ns com.dpzmick.ast-manip.replace-test
+  (:require [com.dpzmick.ast-manip.replace :refer :all]
             [clojure.walk :refer :all]
             [clojure.test :refer :all]))
 

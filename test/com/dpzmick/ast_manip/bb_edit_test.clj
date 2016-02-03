@@ -1,6 +1,6 @@
-(ns auto-parallel.bb-edit-test
-  (:require [auto-parallel.bb-edit :refer :all]
-            [auto-parallel.expand-lets :refer :all]
+(ns com.dpzmick.ast-manip.bb-edit-test
+  (:require [com.dpzmick.ast-manip.bb-edit :refer :all]
+            [com.dpzmick.ast-manip.expand-lets :refer :all]
             [clojure.pprint :refer :all]
             [clojure.test :refer :all]))
 

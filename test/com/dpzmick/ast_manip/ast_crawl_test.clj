@@ -1,5 +1,5 @@
-(ns auto-parallel.ast-crawl-test
-  (:require [auto-parallel.ast-crawl :refer :all]
+(ns com.dpzmick.ast-manip.ast-crawl-test
+  (:require [com.dpzmick.ast-manip.ast-crawl :refer :all]
             [clojure.test :refer :all]))
 
 ;; test that the callbacks get called with the right value and the right args

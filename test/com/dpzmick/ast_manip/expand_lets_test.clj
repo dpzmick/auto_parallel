@@ -1,5 +1,5 @@
-(ns auto-parallel.expand-lets-test
-  (:require [auto-parallel.expand-lets :refer :all]
+(ns com.dpzmick.ast-manip.expand-lets-test
+  (:require [com.dpzmick.ast-manip.expand-lets :refer :all]
             [clojure.walk :refer :all]
             [clojure.test :refer :all]))
 
