@@ -57,7 +57,7 @@
      }
     fname))
 
-(defn calls-to-tasks [expr fname]
+(defn calls-to-tasks
   "
   this pass processes let expressions.
 
@@ -70,5 +70,6 @@
   Run this after running the bb-edit pass, to convert a function to a
   parallel function.
   "
+  [expr fname]
   (log "calls-to-tasks" expr fname)
   (crawl expr fname))

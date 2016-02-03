@@ -48,10 +48,11 @@
      :const-cb crawl-const
      }))
 
-(defn simplify-ast [expr]
+(defn simplify-ast
   "
   applies some light simplification to the syntax tree
   (useful in trying to stave off stack overflow)
   "
+  [expr]
   (log "simplify-ast" expr)
   (crawl expr))

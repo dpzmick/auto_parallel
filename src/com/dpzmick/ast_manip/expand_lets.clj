@@ -23,10 +23,11 @@
 (defn el-vec   [expr _] (mapv expand-lets expr))
 (defn el-const [expr _] expr)
 
-(defn expand-lets [expr]
+(defn expand-lets
   "
   defines a pass which will expand every let into a let with a single binding
   "
+  [expr]
   (ast-crawl-expr
     (macroexpand-all expr)
     {
