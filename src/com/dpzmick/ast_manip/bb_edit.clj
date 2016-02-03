@@ -1,8 +1,8 @@
 ;; what a mess
 
-(ns auto-parallel.bb-edit
-  (:require [auto-parallel.ast-crawl :refer :all]
-            [auto-parallel.util :refer :all]
+(ns com.dpzmick.ast-manip.bb-edit
+  (:require [com.dpzmick.ast-manip.ast-crawl :refer :all]
+            [com.dpzmick.util :refer :all]
             [clojure.walk :refer [macroexpand-all]]))
 
 (def multiple-bindings

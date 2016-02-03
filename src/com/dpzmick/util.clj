@@ -1,4 +1,4 @@
-(ns auto-parallel.util
+(ns com.dpzmick.util
   (:require [clojure.pprint :refer :all]
             [clojure.walk :refer :all]))
 

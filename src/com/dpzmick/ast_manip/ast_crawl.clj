@@ -1,4 +1,4 @@
-(ns auto-parallel.ast-crawl)
+(ns com.dpzmick.ast-manip.ast-crawl)
 
 (defn defhandlerhelper
   ([a _ b _ c] (defhandlerhelper a _ b _ c _ []))

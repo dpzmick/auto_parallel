@@ -1,5 +1,5 @@
-(ns auto-parallel.replace
-  (:require [auto-parallel.ast-crawl :refer :all]
+(ns com.dpzmick.ast-manip.replace
+  (:require [com.dpzmick.ast-manip.ast-crawl :refer :all]
             [clojure.walk :refer :all]))
 
 (declare replace-in-expr) ;; defined later

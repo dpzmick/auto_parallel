@@ -1,6 +1,6 @@
-(ns auto-parallel.dependency
-  (:require [auto-parallel.ast-crawl :refer :all]
-            [auto-parallel.util :refer :all]
+(ns com.dpzmick.ast-manip.dependency
+  (:require [com.dpzmick.ast-manip.ast-crawl :refer :all]
+            [com.dpzmick.util :refer :all]
             [clojure.walk :refer :all]))
 
 ;; check for dependencies

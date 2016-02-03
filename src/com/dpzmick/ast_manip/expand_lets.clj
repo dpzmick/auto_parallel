@@ -1,7 +1,6 @@
-(ns auto-parallel.expand-lets
-  (:require [auto-parallel.ast-crawl :refer :all]
-            [auto-parallel.util :refer :all]
-            [clojure.pprint :refer :all]
+(ns com.dpzmick.ast-manip.expand-lets
+  (:require [com.dpzmick.ast-manip.ast-crawl :refer :all]
+            [com.dpzmick.util :refer :all]
             [clojure.walk :refer :all]))
 
 (declare expand-lets)
@@ -26,7 +25,7 @@
 
 (defn expand-lets [expr]
   "
-  defines a 'pass' which will expand every let into a let with a single binding
+  defines a pass which will expand every let into a let with a single binding
   "
   (ast-crawl-expr
     (macroexpand-all expr)

@@ -1,4 +1,4 @@
-(ns auto-parallel.fork-join-par
+(ns com.dpzmick.runtime.fork-join-par
   (:import (java.util.concurrent RecursiveTask)))
 
 (defn new-task

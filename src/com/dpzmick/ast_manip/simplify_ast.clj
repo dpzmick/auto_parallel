@@ -1,9 +1,6 @@
-(ns auto-parallel.simplify-ast
-  (:require [auto-parallel.replace :refer :all]
-            [auto-parallel.ast-crawl :refer :all]
-            [auto-parallel.fork-join-par :as fj]
-            [clojure.pprint :refer :all]
-            [auto-parallel.util :refer :all]
+(ns com.dpzmick.ast-manip.simplify-ast
+  (:require [com.dpzmick.ast-manip.ast-crawl :refer :all]
+            [com.dpzmick.util :refer :all]
             [clojure.walk :refer :all]))
 
 (defn- log [& args] (if false (apply println args)))
