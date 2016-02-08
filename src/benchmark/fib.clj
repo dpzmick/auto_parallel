@@ -1,17 +1,8 @@
 (ns benchmark.fib
-  (:use benchmark.util)
-  (:require [auto-parallel.core :as ap]))
-
-;; a really bad Fibonacci code, but uses parexpr to evaluate.
-;; when run this will fully saturate the CPU, because each parexpr will get
-;; evaluated in a fork/join fashion. This will very quickly create more tasks
-;; than there are threads, and will give us parallelism
-; (defn fib-parexpr
-;   [n]
-;   (if (or (= 0 n) (= 1 n))
-;     1
-;     (ap/parexpr (+ (fib-parexpr (- n 1))
-;                    (fib-parexpr (- n 2))))))
+  (:require [criterium.core :as cr])
+  (:require [com.dpzmick.parallel-macros.parexpr :refer [parexpr]])
+  (:require [com.dpzmick.parallel-macros.parlet :refer [parlet]])
+  (:require [com.dpzmick.parallel-macros.defparfun :refer [defparfun]]))
 
 (defn fib [n]
   (if (or (= 0 n) (= 1 n))
@@ -20,52 +11,52 @@
      (fib (- n 1))
      (fib (- n 2)))))
 
-(defn fib-parlet [n]
+(defn fibparexpr
+  [n]
   (if (or (= 0 n) (= 1 n))
     1
-    (ap/parlet
-      [m1 (fib-parlet (- n 1))
-       m2 (fib-parlet (- n 2))]
+    (parexpr (+ (fibparexpr (- n 1))
+                (fibparexpr (- n 2))))))
+
+(defn fibparlet [n]
+  (if (or (= 0 n) (= 1 n))
+    1
+    (parlet
+      [m1 (fibparlet (- n 1))
+       m2 (fibparlet (- n 2))]
       (+ m1 m2))))
 
-(ap/defparfun fib-parfun [n]
+(defparfun fibparfun [n]
   (if (or (= 0 n) (= 1 n))
     1
     (if (> n 30)
       (+
-       (fib-parfun (- n 1))
-       (fib-parfun (- n 2)))
+       (fibparfun (- n 1))
+       (fibparfun (- n 2)))
       (+
        (fib (- n 1))
        (fib (- n 2))))))
 
 ;; we quickly run out of threads with this
-(defn fib-future [n]
+(defn fibfuture [n]
   (if (or (= 0 n) (= 1 n))
     1
-    (let [a (future (fib-future (- n 1)))
-          b (future (fib-future (- n 2)))]
+    (let [a (future (fibfuture (- n 1)))
+          b (future (fibfuture (- n 2)))]
       (+ @a @b))))
 
-;; some large benchmarks, to compare the different par* types
-(def large-fib 20)
-; (defb large-parexpr (fib-parexpr large-fib))
-(defb large-parlet  (fib-parlet  large-fib))
-(defb large-parfun  (fib-parfun  large-fib))
+;; define a handful of benchmark functions
+(defn fib-parfun [nstr]
+  (cr/bench (fibparfun (read-string nstr))))
 
-; (def large-fib-benchmarks
-;   (reify BenchmarkSuite
-;     (toString [this] "large fib benchmarks")
-;     (benchmarks [this]
-;       [large-parexpr large-parlet large-parfun])))
+(defn fib-parexpr [nstr]
+  (cr/bench (fibparexpr (read-string nstr))))
 
-(def small-fib 10)
-; (defb small-parexpr (fib-parexpr small-fib))
-(defb small-parlet  (fib-parlet  small-fib))
-(defb small-parfun  (fib-parfun  small-fib))
-(defb small-futures (fib-future  small-fib))
+(defn fib-parlet [nstr]
+  (cr/bench (fibparlet (read-string nstr))))
 
-; (def small-fib-benchmarks
-;   (make-benchmark-suite
-;     "small fib benchmarks"
-;     [small-parexpr small-parlet small-parfun small-futures]))
+(defn fib-serial [nstr]
+  (cr/bench (fib (read-string nstr))))
+
+(defn fib-future [nstr]
+  (cr/bench (fibfuture (read-string nstr))))

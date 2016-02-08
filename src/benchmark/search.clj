@@ -1,9 +1,9 @@
 (ns benchmark.search
   (:use benchmark.util)
-  (:require [auto-parallel.core :as ap]))
+  (:require [com.dpzmick.parallel-macros.defparfun :refer [defparfun]]))
 
 ;; getting this to compile too some doing
-(ap/defparfun search-par [value lst]
+(defparfun search-par [value lst]
   (cond
     (> 1 (count lst)) false
     (= 1 (count lst)) (= value (first lst))

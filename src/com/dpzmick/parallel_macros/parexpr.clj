@@ -2,17 +2,18 @@
   (:require [com.dpzmick.ast-manip.dependency :refer :all]
             [com.dpzmick.ast-manip.replace :refer :all]
             [com.dpzmick.runtime.fork-join-par :as p]
+            [com.dpzmick.parallel-macros.parlet :refer [parlet]]
             [com.dpzmick.util :refer :all]))
 ;; parexpr
 ;; make it easier to play with syntax tree
-(defn args [expr] (rest expr))
-(defn fun  [expr] (first expr))
-(defn const? [expr] (not (seq? expr)))
-(defn all-args-const?
+(defn- args [expr] (rest expr))
+(defn- fun  [expr] (first expr))
+(defn- const? [expr] (not (seq? expr)))
+(defn- all-args-const?
   [expr]
   (every? true? (map const? (args expr))))
 
-(defn prune
+(defn- prune
   "
   finds 'leaves' in the syntax tree. Everything in :names can be computed in
   parallel
@@ -35,7 +36,7 @@
        mynames    (apply merge subnames)]
       {:expr (cons (fun expr) subexprs), :names mynames})))
 
-(defn make-nested-lets
+(defn- make-nested-lets
   "
   makes nested parlets such that parallelism is maximized
   "

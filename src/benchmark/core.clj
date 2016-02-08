@@ -1,26 +1,41 @@
 (ns benchmark.core
-  (:use benchmark.util)
-  (:use benchmark.merge)
-  (:require [criterium.core :as cr]))
+  (:require [clojure.java.io :as io])
+  (:require [clojure.string :refer [split starts-with? join]])
+  (:require [benchmark.fib :refer :all]))
 
-(def live-benchmarks (atom []))
+(defn- env-expand [string]
+  (if (starts-with? string "$")
+    (let
+      [var-name (join (rest string))]
+      (System/getenv var-name))
+    string))
 
-(defn add-benchmarks [which]
-  (swap!
-    live-benchmarks
-    #(cons which %)))
+(defn- run-line [line]
+  (let
+    [[fun-name & args] (split line #",")
+     args              (map env-expand args)
+     function          (resolve (symbol fun-name))]
 
-;; should a suite know how to run itself, or is this probably sufficient?
-(defn run-suite [s]
-  (println "running suite" s)
-  (doseq [b (benchmarks s)] (b)))
+    (if (nil? function)
+      (do
+        (println "function" fun-name "not found"))
 
-(defn run-benchmarks []
-  (doseq [s @live-benchmarks]
-    (run-suite s)))
+      (do
+        (println "running" fun-name "with args" args)
+        (apply function args)))))
 
+;; reads from a csv file in the form:
+;; function_name,arg1,arg1,...
+;; and executes each function call: (f1 arg1 arg2) ... for each line in input
+;; file
+;; the functions must have already been required, because that's easier
+;; define the actual benchmark calls in the body of the functions,
+;; that way, stuff can be created before the benchmark starts, based on the
+;; arguments
 (defn -main [& args]
-  ; (add-benchmarks search-benchmarks)
-  ; (add-benchmarks large-fib-benchmarks)
-  ; (add-benchmarks small-fib-benchmarks)
-  (run-suite merge-benchmarks))
+  (if-not (= 1 (count args))
+    (println "usage: lein benchmark benchmark-spec.csv")
+
+    (do
+      (with-open [in-file (io/reader (nth args 0))]
+        (doall (map run-line (rest (line-seq in-file))))))))

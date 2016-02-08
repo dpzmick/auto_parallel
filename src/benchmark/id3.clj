@@ -1,8 +1,7 @@
 ;; id3 for datasets where all attributes are binary attributes
 ;; example of a datum {:a true :b false :c true}
 
-(ns benchmark.id3
-  (:require [auto-parallel.core :as ap]))
+(ns benchmark.id3)
 
 (use 'clojure.tools.trace)
 
