@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# this script ignores hyperthreading and NUMA
+# if you need to care about those things, you'll have to be more careful
+
 display_usage() {
     echo -e "usage $0 number_cpus output_dir specs_to_run"
     echo -e "where"
@@ -21,6 +24,8 @@ source ./env
 set +a
 
 num_cpus=$1
+cpus=$(seq -s"," 0 $(expr $num_cpus - 1))
+
 output_dir=$2
 output_dir=$output_dir/$num_cpus-$(date +"%m.%d.%y.%H.%M.%S")
 log_file=$output_dir/log
@@ -36,6 +41,10 @@ mkdir -p $output_dir
 echo "run starting" > $log_file
 date +"%m-%d-%y %H:%m:%S" >> $log_file
 date +"%s" >> $log_file
+
+echo >> $log_file
+echo "using cpus: $cpus" >> $log_file
+
 echo >> $log_file
 echo "running these specs:" >> $log_file
 for spec in "${specs[@]}"; do
@@ -49,8 +58,7 @@ for spec in "${specs[@]}"; do
     # setup filenames
     base=${spec//\//.}
     base=$output_dir/$base
-    base_cpu=$base-cpu
 
     # run the spec and do the output
-    lein benchmark $spec | tee $base
+    taskset -c "$cpus" lein benchmark $spec | tee $base
 done
