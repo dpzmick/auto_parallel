@@ -32,10 +32,18 @@
 ;; define the actual benchmark calls in the body of the functions,
 ;; that way, stuff can be created before the benchmark starts, based on the
 ;; arguments
+;; also reads the number of threads to use from the environment
 (defn -main [& args]
   (if-not (= 1 (count args))
     (println "usage: lein benchmark benchmark-spec.csv")
 
     (do
+      (let
+        [num-threads (env-expand "$NUM_JAVA_THREADS")]
+        (println "setting the number fork/join threads to" num-threads)
+        (System/setProperty
+          "java.util.concurrent.ForkJoinPool.common.parallelism"
+          num-threads))
+
       (with-open [in-file (io/reader (nth args 0))]
         (doall (map run-line (rest (line-seq in-file))))))))
