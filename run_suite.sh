@@ -60,5 +60,5 @@ for spec in "${specs[@]}"; do
     base=$output_dir/$base
 
     # run the spec and do the output
-    NUM_JAVA_CPUS=$num_cpus taskset -c "$cpus" lein benchmark $spec | tee $base
+    NUM_JAVA_THREADS=$num_cpus taskset -c "$cpus" lein benchmark $spec | tee $base
 done
