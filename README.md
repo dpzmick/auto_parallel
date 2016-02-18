@@ -7,7 +7,6 @@ claypoole don't quite fit.
 ## goals
 * parallelize code with very little thought (just stick stuff all over the
   codebase without really thinking and maybe get a speedup).
-* threadpools
 * be predictable
 
 ## big TODOS
@@ -74,7 +73,6 @@ us attempt to make this let parallel:
 As you can see, it doesn't let us!
 
 ##parexpr macro
-(currently broken, probably)
 parexpr is a macro that executes an expression in parallel. It evaluates any
 subexpressions with no dependencies first.
 
@@ -90,3 +88,42 @@ subexpressions with no dependencies first.
     ;; evalute (r2) (r1) (r1) at the same time, so the execution takes as long
     ;; as the longest subexpression, which is (r2)
 
+##defparfun macro
+define a function which will execute in a fork join pool, in parallel fork join
+tasks:
+
+```
+(defn fib [n]
+  (if (or (= 0 n) (= 1 n))
+    1
+    (+
+     (fib (- n 1))
+     (fib (- n 2)))))
+
+(defparfun fibparfun [n]
+  (if (or (= 0 n) (= 1 n))
+    1
+    (if (> n 30)
+      (+
+       (fibparfun (- n 1))
+       (fibparfun (- n 2)))
+      (+
+       (fib (- n 1))
+       (fib (- n 2))))))
+```
+
+The definition of a serial fib is included to give us some control of the
+granularity of the parallelism. Eventually, the macro may have support for
+simple granularity.
+
+```
+com.dpzmick.parallel-macros=> (time (fib 35))
+"Elapsed time: 2720.999987 msecs"
+14930352
+com.dpzmick.parallel-macros=> (time (fibparfun 35))
+"Elapsed time: 1442.98349 msecs"
+14930352
+com.dpzmick.parallel-macros=>
+```
+
+On a machine with 2 real cores, that's not bad!
