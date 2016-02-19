@@ -13,4 +13,6 @@
                          :jvm-opts ["-server"]}}
 
   :aliases {"benchmark" ["with-profile" "benchmark" "run" "-m" "benchmark.core"]
-            "slamhound" ["run" "-m" "slam.hound"]})
+            "slamhound" ["run" "-m" "slam.hound"]}
+
+  :plugins [[lein-cloverage "1.0.2"]])
