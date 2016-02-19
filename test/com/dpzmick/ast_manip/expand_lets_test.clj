@@ -30,3 +30,18 @@
     [in '(let [[a b] [10 11]] (+ a b))]
     (is
       (= 21 (eval (expand-lets in))))))
+
+(deftest expand-map-lets
+  (let
+    [in '(:a {:a 10})]
+    (is (= 10 (eval (expand-lets in)))))
+
+  (let
+    [in '(get {(let [a 10 b 10] (+ a b)) 10} 20)]
+    (is (= 10 (eval (expand-lets in))))
+    (println (expand-lets in)))
+
+  (let
+    [in '(:a {:a (let [a 10 b 10] (+ a b))})]
+    (is (= 20 (eval (expand-lets in))))
+    (println (expand-lets in))))

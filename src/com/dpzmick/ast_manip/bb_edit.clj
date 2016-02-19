@@ -151,6 +151,18 @@
      :forms (vec children-forms)
      }))
 
+(defn- crawl-map [ks vs f]
+  (let [vs-res   (map #(crawl % f) vs)
+        vs-forms (map :forms vs-res)
+        ks-res   (map #(crawl % f) ks)
+        ks-forms (map :forms ks-res)
+        vs-bindings (mapcat :bindings vs-res)
+        ks-bindings (mapcat :bindings ks-res)]
+    {
+     :bindings (concat vs-bindings ks-bindings)
+     :forms (zipmap ks-forms vs-forms)
+     }))
+
 (defn- crawl-const [expr _]
   (log "crawl-const" expr)
   {:bindings [] :forms expr})
@@ -163,6 +175,7 @@
      :let-cb    crawl-let
      :vector-cb crawl-vector
      :list-cb   crawl-list
+     :map-cb    crawl-map
      :const-cb  crawl-const
      }
     f))

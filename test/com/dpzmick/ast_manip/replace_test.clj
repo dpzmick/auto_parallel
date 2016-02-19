@@ -37,3 +37,15 @@
 (defreptest preserve-vector a b
   [a b c]
   [b b c])
+
+(defreptest t-replace-in-map a b
+  {:cats a}
+  {:cats b})
+
+(defreptest t-replace-in-map2 a b
+  {:cats a :dogs b}
+  {:cats b :dogs b})
+
+(defreptest t-replace-in-map2 a b
+  {a 100 :dogs b}
+  {b 100 :dogs b})

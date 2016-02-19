@@ -38,6 +38,11 @@
 (defn dep-in-normal-expr?  [expr var-name]
   (any-true? (map #(dependency? var-name %) expr)))
 
+(defn dep-in-map? [ks vs var-name]
+  (or
+    (any-true? (map #(dependency? var-name %) ks))
+    (any-true? (map #(dependency? var-name %) vs))))
+
 (defn dep-in-const? [expr var-name] (= var-name expr))
 
 (defn dep-in-expr? [var-name expr]
@@ -46,6 +51,7 @@
     {:let-cb    dep-in-let?
      :vector-cb dep-in-normal-expr?
      :list-cb   dep-in-normal-expr?
+     :map-cb    dep-in-map?
      :const-cb  dep-in-const?}
     var-name))
 

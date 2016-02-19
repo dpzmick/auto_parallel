@@ -64,6 +64,11 @@
 (defn replace-in-vector [expr args]
   (vec (replace-in-list expr args)))
 
+(defn replace-in-map [ks vs {e :to-replace replacement :replacement}]
+  (zipmap
+    (map #(replace-all e replacement %) ks)
+    (map #(replace-all e replacement %) vs)))
+
 (defn replace-in-const [expr {e :to-replace, replacement :replacement}]
   (if (= e expr) replacement expr))
 
@@ -75,5 +80,6 @@
     {:let-cb    replace-in-let
      :vector-cb replace-in-vector
      :list-cb   replace-in-list
+     :map-cb    replace-in-map
      :const-cb  replace-in-const}
     args))

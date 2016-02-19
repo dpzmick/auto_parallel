@@ -20,3 +20,9 @@
   (is (dependency? 'a '(let [c d] a)))
   (is (dependency? 'a '(let [c d b a] a)))
   (is (dependency? 'a '(let [a a] a))))
+
+(deftest dep-in-map
+  (is (dependency? 'a '{:a a}))
+  (is (dependency? 'a '{:a b :b a}))
+  (is (dependency? 'a '{a 100}))
+  (is (not (dependency? 'a '{:a (let [a 10] a)}))))
