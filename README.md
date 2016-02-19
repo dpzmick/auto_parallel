@@ -1,4 +1,8 @@
 # auto_parallel
+[![Build Status](https://travis-ci.org/dpzmick/auto_parallel.svg?branch=master)](https://travis-ci.org/dpzmick/auto_parallel)
+
+[![Coverage Status](https://coveralls.io/repos/github/dpzmick/auto_parallel/badge.svg?branch=master)](https://coveralls.io/github/dpzmick/auto_parallel?branch=master)
+
 Collection of clojure macros to parallelize code. This project is an experiment
 which will attempt to allow for simple parallelization of existing code, in
 cases where builtins like pmap, or libraries like reducers, tesser, and
