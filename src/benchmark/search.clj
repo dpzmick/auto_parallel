@@ -1,5 +1,4 @@
 (ns benchmark.search
-  (:use benchmark.util)
   (:require [com.dpzmick.parallel-macros.defparfun :refer [defparfun]]))
 
 ;; getting this to compile too some doing
@@ -28,12 +27,3 @@
 ;; define all of the possible benchmarks for this namespace
 (def n-search 1000000)
 (def search-list (vec (take n-search (repeatedly #(rand-int n-search)))))
-
-(defb search-par-bench (search-par 1 search-list))
-(defb search-serial-bench (search-serial 1 search-list))
-
-;; define the benchmark suite exposed by this namespace
-(def search-benchmarks
-  (make-benchmark-suite
-    "search-benchmarks"
-    [search-par-bench search-serial-bench]))

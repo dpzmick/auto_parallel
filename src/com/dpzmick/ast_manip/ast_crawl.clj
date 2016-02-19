@@ -30,8 +30,14 @@
   where [bindings (partition 2 (second expr))
          forms    (rest (rest expr))])
 
-(defmanyhandlers (vector-handler list-handler const-handler map-handler)
-  for-callbacks-named (:vector-cb :list-cb :const-cb :map-cb)
+(defhandler map-handler
+  for-callback-named :map-cb
+  use-arguments (k v)
+  where [k (keys expr)
+         v (vals expr)])
+
+(defmanyhandlers (vector-handler list-handler const-handler)
+  for-callbacks-named (:vector-cb :list-cb :const-cb)
   all-using-arguments (expr))
 
 (defn- const? [expr] (and (not (sequential? expr)) (not (map? expr))))

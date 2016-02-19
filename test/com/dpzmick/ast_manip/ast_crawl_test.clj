@@ -30,9 +30,10 @@
 
 (deftest test-map-cb
   (let
-    [cb (fn [e args]
+    [cb (fn [ks vs args]
           (is
             (and
-              (= e '{:cat (foo 10)})
+              (= ks '(:cat :dog))
+              (= vs '((foo 10) :cars))
               (= args 'meow))))]
-    (ast-crawl-expr '{:cat (foo 10)} {:map-cb cb} 'meow)))
+    (ast-crawl-expr '{:cat (foo 10) :dog :cars} {:map-cb cb} 'meow)))

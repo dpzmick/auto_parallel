@@ -1,5 +1,4 @@
 (ns benchmark.merge
-  (:use benchmark.util)
   (:require [clojure.pprint :refer :all])
   (:require [com.dpzmick.parallel-macros.defparfun :refer [defparfun]]))
 
