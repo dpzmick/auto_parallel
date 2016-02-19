@@ -43,7 +43,6 @@
   "
   ([expr callbacks] (ast-crawl-expr expr callbacks nil))
   ([expr callbacks callback-args]
-   (println expr (map? expr))
    (cond
      (const? expr)          (const-handler  expr callbacks callback-args)
      (= 'let* (first expr)) (let-handler    expr callbacks callback-args)
