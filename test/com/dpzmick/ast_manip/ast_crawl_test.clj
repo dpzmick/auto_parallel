@@ -27,3 +27,12 @@
   (let
     [cb (fn [e args] (is (and (= e '(foo bar)) (= args 'meow))))]
     (ast-crawl-expr '(foo bar) {:list-cb cb} 'meow)))
+
+(deftest test-map-cb
+  (let
+    [cb (fn [e args]
+          (is
+            (and
+              (= e '{:cat (foo 10)})
+              (= args 'meow))))]
+    (ast-crawl-expr '{:cat (foo 10)} {:map-cb cb} 'meow)))

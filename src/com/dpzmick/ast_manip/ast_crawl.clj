@@ -1,5 +1,7 @@
 (ns com.dpzmick.ast-manip.ast-crawl)
 
+(def not-supported "this form is not supported")
+
 (defn defhandlerhelper
   ([a _ b _ c] (defhandlerhelper a _ b _ c _ []))
   ([hname _ cb-name _ cb-args _ bindings]
@@ -28,11 +30,12 @@
   where [bindings (partition 2 (second expr))
          forms    (rest (rest expr))])
 
-(defmanyhandlers (vector-handler list-handler const-handler)
-  for-callbacks-named (:vector-cb :list-cb :const-cb)
+(defmanyhandlers (vector-handler list-handler const-handler map-handler)
+  for-callbacks-named (:vector-cb :list-cb :const-cb :map-cb)
   all-using-arguments (expr))
 
-;; TODO map syntax
+(defn- const? [expr] (and (not (sequential? expr)) (not (map? expr))))
+
 (defn ast-crawl-expr
   "
   Crawls the AST for a given expression, calling the callback functions with
@@ -40,18 +43,11 @@
   "
   ([expr callbacks] (ast-crawl-expr expr callbacks nil))
   ([expr callbacks callback-args]
-   (if (sequential? expr)
-     ;; we have a function call or some other form (like a vector or list
-     ;; literal)
-     (cond
-       (= 'let* (first expr)) (let-handler    expr callbacks callback-args)
-       (vector? expr)         (vector-handler expr callbacks callback-args)
-       (sequential? expr)     (list-handler   expr callbacks callback-args)
-       :else                  (throw
-                                (Exception.
-                                  (str
-                                    "this form is not supported: "
-                                    (first expr)))))
-
-     ;; the expression is a single term
-     (const-handler expr callbacks callback-args))))
+   (println expr (map? expr))
+   (cond
+     (const? expr)          (const-handler  expr callbacks callback-args)
+     (= 'let* (first expr)) (let-handler    expr callbacks callback-args)
+     (vector? expr)         (vector-handler expr callbacks callback-args)
+     (sequential? expr)     (list-handler   expr callbacks callback-args)
+     (map? expr)            (map-handler    expr callbacks callback-args)
+     :else                  (throw (Exception. (str not-supported expr))))))
