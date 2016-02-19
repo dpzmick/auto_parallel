@@ -11,9 +11,6 @@ claypoole don't quite fit.
   codebase without really thinking and maybe get a speedup).
 * be predictable
 
-## big TODOS
-* support map syntax
-
 # features
 ## parlet macro
 A parallel let expression. Each of the let bindings is evaluated in a fork/join
