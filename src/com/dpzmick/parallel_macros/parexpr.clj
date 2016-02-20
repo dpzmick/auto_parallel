@@ -48,4 +48,7 @@
        bindings           (vec (apply concat (into (list) n)))]
       `(parlet ~bindings ~(make-nested-lets e)))))
 
+;; TODO need to detect when one of the parlets is singular and remove it.
+;; it isn't the case that a parlet with a single binding should be a noop in
+;; general, so we can't change parlet to make this hold
 (defmacro parexpr [expr] (make-nested-lets expr))

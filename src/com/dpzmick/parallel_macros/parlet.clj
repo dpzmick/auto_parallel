@@ -7,7 +7,8 @@
 (def dependency-error
   "this let form cannot be parallel. There are dependencies in the bindings")
 
-;; this is a noop if there is only one binding
+;; this can't be a noop when there is only one val, there are some things that
+;; will generate parlets with only one value
 (defmacro parlet
   [bindings & forms]
   (if (let-has-deps? bindings)
@@ -22,11 +23,6 @@
 
       ;; each val becomes a fork join task, each reference to the value becomes
       ;; (join task)
-      (if (= 1 (count pairs))
-        ;; be a noop
-        `(let ~(make-bindings names vals) ~@forms)
-
-        ;; don't be a noop
-        `(let
-           ~(make-bindings names tasks)
-           ~@(map #(replace-many names new-vals %) forms))))))
+      `(let
+         ~(make-bindings names tasks)
+         ~@(map #(replace-many names new-vals %) forms)))))

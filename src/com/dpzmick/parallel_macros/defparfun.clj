@@ -36,6 +36,7 @@
 ;; can't treat functions like first class objects here
 ;; the macro can only parallelize from the call site, if the call site is
 ;; actually the call site
+;; TODO get & forms] to cooperate
 (defmacro defparfun
   ([fname args forms] (defparfun-helper fname args forms nil))
   ([fname args grain forms] (defparfun-helper fname args forms grain)))
