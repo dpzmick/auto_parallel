@@ -27,7 +27,7 @@ num_cpus=$1
 cpus=$(seq -s"," 0 $(expr $num_cpus - 1))
 
 output_dir=$2
-output_dir=$output_dir/$num_cpus-$(date +"%m.%d.%y.%H.%M.%S")
+output_dir=$output_dir/$num_cpus-$(date +"%s")
 log_file=$output_dir/log
 
 tmp=( "$@" )
