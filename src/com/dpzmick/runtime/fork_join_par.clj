@@ -9,6 +9,6 @@
   (proxy [RecursiveTask] []
     (compute [] (f))))
 
-(defn fork [t] (.fork t))
-(defn join [t] (.join t))
-(defn compute [t] (.compute t))
+(defn fork [t] (.fork ^RecursiveTask t))
+(defn join [t] (.join ^RecursiveTask t))
+(defn compute [t] (.compute ^RecursiveTask t))
