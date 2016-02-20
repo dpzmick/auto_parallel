@@ -37,6 +37,7 @@ echo "Running with $num_cpus cpus for each benchmark, and writing into $output_d
 
 # make a new directory for this run
 mkdir -p $output_dir
+cp env $output_dir/env
 
 echo "run starting" > $log_file
 date +"%m-%d-%y %H:%m:%S" >> $log_file
