@@ -41,6 +41,7 @@ mkdir -p $output_dir
 echo "run starting" > $log_file
 date +"%m-%d-%y %H:%m:%S" >> $log_file
 date +"%s" >> $log_file
+echo "num_cpus: $num_cpus" >> $log_file
 
 echo >> $log_file
 echo "using cpus: $cpus" >> $log_file
@@ -62,3 +63,5 @@ for spec in "${specs[@]}"; do
     # run the spec and do the output
     NUM_JAVA_THREADS=$num_cpus taskset -c "$cpus" lein benchmark $spec | tee $base
 done
+
+echo "finished test" >> $log_file

@@ -1,10 +1,12 @@
+(set! *warn-on-reflection* true)
+
 (ns benchmark.fib
   (:require [criterium.core :as cr])
   (:require [com.dpzmick.parallel-macros.parexpr :refer [parexpr]])
   (:require [com.dpzmick.parallel-macros.parlet :refer [parlet]])
   (:require [com.dpzmick.parallel-macros.defparfun :refer [defparfun]]))
 
-(defn fib [n]
+(defn fib ^Long [^Long n]
   (if (or (= 0 n) (= 1 n))
     1
     (+
@@ -18,7 +20,7 @@
     (parexpr (+ (fibparexpr (- n 1))
                 (fibparexpr (- n 2))))))
 
-(defn fibparlet [n]
+(defn fibparlet [^Long n]
   (if (or (= 0 n) (= 1 n))
     1
     (parlet
@@ -26,7 +28,7 @@
        m2 (fibparlet (- n 2))]
       (+ m1 m2))))
 
-(defparfun fibparfun [n] (< n 31)
+(defparfun fibparfun [^Long n] (< n 31)
   (if (or (= 0 n) (= 1 n))
     1
     (+
