@@ -30,7 +30,7 @@
           ;; need to emit a granularity check
           ;; this up will often create unreachable code, but that's okay
           `(if ~grain
-             (do (println "taking grain") ~forms)
+             ~forms
              ~body)))))
 
 ;; can't treat functions like first class objects here
