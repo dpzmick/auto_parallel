@@ -25,6 +25,9 @@ def to_micros(b, unit):
     if unit == "sec":
         return 1e6 * b
 
+    if unit == "ms":
+        return 1000 * b
+
     raise Exception("fixmepls")
 
 def handle_single_spec(trial_dir, spec_name):
