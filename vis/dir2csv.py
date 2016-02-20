@@ -75,7 +75,7 @@ def handle_trial(input_dir, trial_name):
 
     children_data = []
     for f in listdir(path):
-        if f == 'log':
+        if f == 'log' or f == 'env':
             continue
 
         children_data.append(handle_single_spec(path, f))
