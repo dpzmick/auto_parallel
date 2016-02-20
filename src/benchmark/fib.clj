@@ -26,16 +26,12 @@
        m2 (fibparlet (- n 2))]
       (+ m1 m2))))
 
-(defparfun fibparfun [n]
+(defparfun fibparfun [n] (< n 31)
   (if (or (= 0 n) (= 1 n))
     1
-    (if (> n 30)
-      (+
-       (fibparfun (- n 1))
-       (fibparfun (- n 2)))
-      (+
-       (fib (- n 1))
-       (fib (- n 2))))))
+    (+
+     (fibparfun (- n 1))
+     (fibparfun (- n 2)))))
 
 ;; we quickly run out of threads with this
 (defn fibfuture [n]
