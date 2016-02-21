@@ -1,6 +1,7 @@
 (ns benchmark.core
   (:require [clojure.java.io :as io])
   (:require [clojure.string :refer [split starts-with? join]])
+  (:require [benchmark.tree-sum :refer :all])
   (:require [benchmark.fib :refer :all]))
 
 (defn- env-expand [string]
@@ -16,12 +17,13 @@
      args              (map env-expand args)
      function          (resolve (symbol fun-name))]
 
+    (println "running" fun-name "with args" args)
     (if (nil? function)
       (do
         (println "function" fun-name "not found"))
 
-      (do
-        (println "running" fun-name "with args" args)
+      (if (some nil? args)
+        (println "an arg is nil, not running this. Args:" args)
         (apply function args)))))
 
 ;; reads from a csv file in the form:
