@@ -1,9 +1,9 @@
 ;; id3 for datasets where all attributes are binary attributes
 ;; example of a datum {:a true :b false :c true}
 
-(ns benchmark.id3)
-
-(use 'clojure.tools.trace)
+(ns benchmark.id3
+  (:require [clojure.pprint :refer :all])
+  (:require [com.dpzmick.parallel-macros.defparfun :refer [defparfun]]))
 
 (defn rand-bool [] (case (rand-int 2)
                      0   true

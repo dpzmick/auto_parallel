@@ -1,8 +1,10 @@
 (ns benchmark.search
+  (:require [criterium.core :as cr])
+  (:require [com.dpzmick.util :refer :all])
   (:require [com.dpzmick.parallel-macros.defparfun :refer [defparfun]]))
 
-;; getting this to compile too some doing
-(defparfun search-par [value lst]
+(defparfun searchpar [value lst] false
+  (do (println "called") (Thread/sleep 5)
   (cond
     (> 1 (count lst)) false
     (= 1 (count lst)) (= value (first lst))
@@ -11,9 +13,19 @@
                             b   (drop mid lst)]
                         (if (= value (nth lst mid))
                           true
-                          (or (search-par value a) (search-par value b))))))
+                          ;; we can't short circuit here without serializing
+                          ;; TODO I could maybe detect things like this and warn
+                          ;; the user
+                          ;; (or (searchpar value a) (searchpar value b)))))))
 
-(defn search-serial [value lst]
+                          ;; could use a parlet here, but using defparfun for
+                          ;; grain
+                          (let
+                            [force-l (searchpar value a)
+                             force-r (searchpar value b)]
+                            (or force-l force-r)))))))
+
+(defn searchserial [value lst]
   (cond
     (> 1 (count lst)) false
     (= 1 (count lst)) (= value (first lst))
@@ -22,8 +34,10 @@
                             b   (drop mid lst)]
                         (if (= value (nth lst mid))
                           true
-                          (or (search-serial value a) (search-serial value b))))))
+                          (or (searchserial value a) (searchserial value b))))))
 
-;; define all of the possible benchmarks for this namespace
-(def n-search 1000000)
-(def search-list (vec (take n-search (repeatedly #(rand-int n-search)))))
+(defn- make-list [n] (vec (take n (repeatedly #(rand-int n)))))
+
+(defn search-serial [n]
+  (let [search-list (make-list n)]
+    (cr/bench (searchserial 1 search-list))))
