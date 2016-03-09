@@ -1,6 +1,7 @@
 (ns benchmark.core
   (:require [clojure.java.io :as io])
   (:require [clojure.string :refer [split starts-with? join]])
+  (:require [benchmark.search :refer :all])
   (:require [benchmark.tree-sum :refer :all])
   (:require [benchmark.fib :refer :all]))
 

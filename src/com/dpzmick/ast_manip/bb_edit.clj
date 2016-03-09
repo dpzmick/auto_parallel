@@ -2,7 +2,9 @@
 
 (ns com.dpzmick.ast-manip.bb-edit
   (:require [com.dpzmick.ast-manip.ast-crawl :refer :all]
+            [com.dpzmick.ast-manip.dependency :refer :all]
             [com.dpzmick.util :refer :all]
+            [clojure.set :refer [union difference]]
             [clojure.walk :refer [macroexpand-all]]))
 
 (def multiple-bindings
@@ -17,8 +19,40 @@
 (defn- if-true     [expr] (first (rest (rest expr))))
 (defn- if-false    [expr] (first (rest (rest (rest expr)))))
 
-(defn- handle-forms [forms f]
-  (log "handle-forms" forms f)
+;; finds all bindings which are dependent, or recursively dependent, on the
+;; variables in the vars argument
+;; bindings is a list of bindings
+(declare recursive-dependency-helper)
+(defn recursive-dependency
+  [vname bindings]
+  (let
+    [[deps not-deps] (split-with #(dependency? vname (second %)) bindings)]
+    (recursive-dependency-helper (set deps) (set not-deps) deps)))
+
+;; worklist holds the new bindings which still need some sort of action
+(defn- recursive-dependency-helper [depends not-dep worklist]
+  (if (empty? worklist)
+    ;; we are done, nothing new was added last time
+    [depends not-dep]
+
+    ;; for everything in the worklist, find the new elements to add to depends
+    ;; every new thing goes into both the depends list and the work list
+    (let
+      [new-things (set
+                    (reduce
+                      (fn [acc work]
+                        (concat acc (filter #(dependency? (first work) %) not-dep)))
+                      []
+                      worklist))]
+      (recur (union depends new-things)
+             (difference not-dep new-things)
+             new-things))))
+
+;; handles forms in a let
+;; only emit a block header for the bindings that depend on new values
+;; introduced by the let
+(defn- handle-forms [forms new-var f]
+  (log "handle-forms" forms new-var f)
   (let
     [forms-crawled  (map #(crawl % f) forms)
      forms-bindings (mapcat :bindings forms-crawled)
@@ -30,12 +64,23 @@
       ;; if there are no bindings, just stick the forms
       ;; we still need to use forms-forms because these might have been modified
       ;; in some way in the recursion, even without bindings
-      `(do ~@forms-forms)
+      {
+       :bindings []
+       :forms `(do ~@forms-forms)
+       }
 
       ;; there they are bindings, bind then, then stick in the new forms
-      `(let
-         ~(make-bindings forms-names forms-values)
-         ~@forms-forms))))
+      (let
+        [[dep not-dep] (recursive-dependency new-var forms-bindings)]
+
+        {
+         :bindings not-dep
+         :forms `(let
+                   ~(make-bindings (map first dep) (map second dep))
+                   ~@forms-forms)
+        }
+
+        ))))
 
 ;; assume that all lets have a single binding, need to run expand-lets first
 ;; since lets only have a single binding, any binding emitted by the evaluation
@@ -51,30 +96,32 @@
     [names          (map first bindings)
      values-crawled (map #(crawl % f) (map second bindings))
      values-bs      (mapcat :bindings values-crawled)
-     values-forms   (map :forms values-crawled)]
-
+     values-forms   (map :forms values-crawled)
+     forms-handled  (handle-forms forms (first names) f)
+     forms-bindings (:bindings forms-handled)
+     forms-forms    (:forms forms-handled)]
 
     (if (empty? values-bs)
       ;; if there are no bindings coming from the values, just emit the same let
       ;; again, and handle the forms
       {
-       :bindings []
+       :bindings forms-bindings
        :forms
       `(let
          ~(make-bindings names (map second bindings))
-         ~(handle-forms forms f))
+         ~forms-forms)
        }
 
       ;; if there are bindings, emit a let to handle those bindings, then emit
       ;; the restructured
       {
-       :bindings []
+       :bindings forms-bindings
        :forms
        `(let
           ~(make-bindings (map first values-bs) (map second values-bs))
           (let
             ~(make-bindings names values-forms)
-            ~(handle-forms forms f)))
+            ~forms-forms))
        }
       )))
 
@@ -203,4 +250,4 @@
          ~(:forms ick)))))
 
 
-(defmacro test-move-calls-to-header [f expr] (crawl expr f))
+(defmacro test-move-calls-to-header [f expr] (move-calls-to-header expr f))

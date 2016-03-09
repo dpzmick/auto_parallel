@@ -19,6 +19,39 @@
 
 (defn meval [expr] ((eval (list 'fn ['f] expr)) f))
 
+(deftest rec-deps
+  (let
+    [bindings        ['(cat a)]
+     [deps not-deps] (recursive-dependency 'a bindings)]
+    (is (= (set '[(cat a)]) deps))
+    (is (= (set '())      not-deps)))
+
+  (let
+    [bindings        ['(cat a) '(dog cat)]
+     [deps not-deps] (recursive-dependency 'a bindings)]
+    (is (= (set '[(cat a) (dog cat)]) deps))
+    (is (= (set '())                  not-deps)))
+
+  (let
+    [bindings        ['(cat a) '(dog cat) '(cart (+ cat a))]
+     [deps not-deps] (recursive-dependency 'a bindings)]
+    (is (= (set '(cat dog cart)) (set (map first deps))))
+    (is (= (set '())             not-deps)))
+
+  (let
+    [bindings        ['(cat a) '(dog cat) '(cart (+ cat a)) '(none asd)]
+     [deps not-deps] (recursive-dependency 'a bindings)]
+    (is (= (set '(cat dog cart)) (set (map first deps))))
+    (is (= (set '[(none asd)])    not-deps)))
+
+  (let
+    [bindings        ['(none asd)]
+     [deps not-deps] (recursive-dependency 'a bindings)]
+    (is (= (set '())          deps))
+    (is (= (set '[(none asd)]) not-deps)))
+
+  )
+
 (deftest simple-tests
   ;; immediate call
   (let
@@ -65,6 +98,7 @@
      out (move-calls-to-header (expand-lets in) 'f)]
 
     (println "6:" (meval out))
+    (pprint out)
     (is (= 10 (meval out))))
 
   (let
@@ -81,14 +115,19 @@
     (println "7:" (meval out))
     (pprint out)
     (is (= 10 (meval out))))
-  )
+
+  (let
+    [in '(let [a 100] (f 10))
+     out (move-calls-to-header (expand-lets in) 'f)]
+    (println "8:" out)
+    (is (= 10 (meval out)))))
 
 (deftest map-tests
   (let
     [in '(let [a {:a (f 10) :b (f 10)}] (+ (:a a) (:b a)))
      out (move-calls-to-header (expand-lets in) 'f)]
 
-    (println "8:" (meval out))
+    (println "1:" (meval out))
     (pprint out)
     (is (= 20 (meval out))))
 
@@ -96,6 +135,6 @@
     [in '(let [a {(f 10) 10 :b (f 10)}] (+ (get a 10) (:b a)))
      out (move-calls-to-header (expand-lets in) 'f)]
 
-    (println "9:" (meval out))
+    (println "2:" (meval out))
     (pprint out)
     (is (= 20 (meval out)))))
