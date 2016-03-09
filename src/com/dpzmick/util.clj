@@ -39,3 +39,8 @@
   "
   [names values]
   (vec (apply concat (zip names values))))
+
+(defn in?
+  "true if coll contains elm"
+  [coll elm]
+  (some #(= elm %) coll))

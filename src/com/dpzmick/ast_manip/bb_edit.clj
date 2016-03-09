@@ -4,11 +4,15 @@
   (:require [com.dpzmick.ast-manip.ast-crawl :refer :all]
             [com.dpzmick.ast-manip.dependency :refer :all]
             [com.dpzmick.util :refer :all]
-            [clojure.set :refer [union difference]]
             [clojure.walk :refer [macroexpand-all]]))
 
 (def multiple-bindings
   "this let has multiple bindings, please run expand-lets first")
+
+(def multiple-names
+  (str
+    "this list of bindings binds to the same value more than once."
+    "this is not allowed for this function"))
 
 (defn- log [& args] (if false (apply println args)))
 
@@ -22,15 +26,24 @@
 ;; finds all bindings which are dependent, or recursively dependent, on the
 ;; variables in the vars argument
 ;; bindings is a list of bindings
+;; don't reorder the bindings!
+;; assumes none of the variables in the list overwrite each other
 (declare recursive-dependency-helper)
 (defn recursive-dependency
   [vname bindings]
+  (if (not (apply distinct? (map first bindings)))
+    (throw (Exception. multiple-names)))
+
   (let
     [[deps not-deps] (split-with #(dependency? vname (second %)) bindings)]
-    (recursive-dependency-helper (set deps) (set not-deps) deps)))
+    (recursive-dependency-helper deps not-deps deps)))
 
 ;; worklist holds the new bindings which still need some sort of action
 (defn- recursive-dependency-helper [depends not-dep worklist]
+  ; (println "depends" depends)
+  ; (println "not-dep" not-dep)
+  ; (println "worklist" worklist)
+
   (if (empty? worklist)
     ;; we are done, nothing new was added last time
     [depends not-dep]
@@ -38,14 +51,13 @@
     ;; for everything in the worklist, find the new elements to add to depends
     ;; every new thing goes into both the depends list and the work list
     (let
-      [new-things (set
-                    (reduce
-                      (fn [acc work]
-                        (concat acc (filter #(dependency? (first work) %) not-dep)))
-                      []
-                      worklist))]
-      (recur (union depends new-things)
-             (difference not-dep new-things)
+      [new-things (reduce
+                    (fn [acc work]
+                      (concat acc (filter #(dependency? (first work) %) not-dep)))
+                    []
+                    worklist)]
+      (recur (concat depends new-things)
+             (filter #(not (in? new-things %)) not-dep)
              new-things))))
 
 ;; handles forms in a let

@@ -23,32 +23,32 @@
   (let
     [bindings        ['(cat a)]
      [deps not-deps] (recursive-dependency 'a bindings)]
-    (is (= (set '[(cat a)]) deps))
-    (is (= (set '())      not-deps)))
+    (is (= (set '[(cat a)]) (set deps)))
+    (is (= (set '())        (set not-deps))))
 
   (let
     [bindings        ['(cat a) '(dog cat)]
      [deps not-deps] (recursive-dependency 'a bindings)]
-    (is (= (set '[(cat a) (dog cat)]) deps))
-    (is (= (set '())                  not-deps)))
+    (is (= (set '[(cat a) (dog cat)]) (set deps)))
+    (is (= (set '())                  (set not-deps))))
 
   (let
     [bindings        ['(cat a) '(dog cat) '(cart (+ cat a))]
      [deps not-deps] (recursive-dependency 'a bindings)]
     (is (= (set '(cat dog cart)) (set (map first deps))))
-    (is (= (set '())             not-deps)))
+    (is (= (set '())             (set not-deps))))
 
   (let
     [bindings        ['(cat a) '(dog cat) '(cart (+ cat a)) '(none asd)]
      [deps not-deps] (recursive-dependency 'a bindings)]
     (is (= (set '(cat dog cart)) (set (map first deps))))
-    (is (= (set '[(none asd)])    not-deps)))
+    (is (= (set '[(none asd)])   (set not-deps))))
 
   (let
     [bindings        ['(none asd)]
      [deps not-deps] (recursive-dependency 'a bindings)]
-    (is (= (set '())          deps))
-    (is (= (set '[(none asd)]) not-deps)))
+    (is (= (set '())           (set deps)))
+    (is (= (set '[(none asd)]) (set not-deps))))
 
   )
 
@@ -97,8 +97,8 @@
     [in '(let [a (f 10) b (f a)] (f (f b)))
      out (move-calls-to-header (expand-lets in) 'f)]
 
-    (println "6:" (meval out))
     (pprint out)
+    (println "6:" (meval out))
     (is (= 10 (meval out))))
 
   (let
@@ -119,8 +119,21 @@
   (let
     [in '(let [a 100] (f 10))
      out (move-calls-to-header (expand-lets in) 'f)]
-    (println "8:" out)
-    (is (= 10 (meval out)))))
+
+    (println "8:" (meval out))
+    (pprint out)
+    (is (= 10 (meval out))))
+
+  ;; should pull the calls above the let with b = 5
+  (let
+    [in '(let [b 5] (+ (f 10) (f 11)))
+     out (move-calls-to-header (expand-lets in) 'f)]
+
+    (println "9:" (meval out))
+    (pprint out)
+    (is (= 21 (meval out))))
+
+  )
 
 (deftest map-tests
   (let
