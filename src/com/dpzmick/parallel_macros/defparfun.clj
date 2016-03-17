@@ -16,12 +16,15 @@
               expand-lets
               (move-calls-to-header fname)
 
+              ;; clean up the ast, mostly to try and prevent stack overflow
+              ;; this step also replaces lets of the form (let [a b] ...)
+              ;; which is essential for calls-to-tasks to function correctly
               (simplify-ast)
-              (simplify-ast) ;; catches some new things
+              (simplify-ast) ;; the first pass introduces new do's
 
               (calls-to-tasks fname)
 
-              ; (simplify-ast)
+              (simplify-ast)
               )]
 
     ;; define the function that users will actually call
