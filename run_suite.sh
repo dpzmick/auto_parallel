@@ -1,17 +1,13 @@
 #!/bin/bash
 
-# this script ignores hyperthreading and NUMA
-# if you need to care about those things, you'll have to be more careful
-
 display_usage() {
-    echo -e "usage $0 number_cpus output_dir specs_to_run"
+    echo -e "usage $0 output_dir specs_to_run"
     echo -e "where"
-    echo -e "\tnumber_cpus - number of cpus to allow each process to use"
     echo -e "\toutput_dir - directory to dump results to"
     echo -e "\tspecs_to_run - the remaining arguments (at least one) are benchmark specs to execute"
 }
 
-if [ $# -lt 3 ]
+if [ $# -lt 2 ]
 then
     display_usage
     exit 1
@@ -23,34 +19,27 @@ set -a
 source ./env
 set +a
 
-num_cpus=$1
-cpus=$(seq -s"," 0 $(expr $num_cpus - 1))
-
-output_dir=$2
-output_dir=$output_dir/$num_cpus-$(date +"%s")
+output_dir=$1
+output_dir=$output_dir/$(date +"%s")
 log_file=$output_dir/log
 
 tmp=( "$@" )
-specs=( "${tmp[@]:2}" )
+specs=( "${tmp[@]:1}" )
 
-echo "Running with $num_cpus cpus for each benchmark, and writing into $output_dir"
+echo "Running -- writing into $output_dir"
 
 # make a new directory for this run
 mkdir -p $output_dir
 cp env $output_dir/env
 
-echo "run starting" > $log_file
-date +"%m-%d-%y %H:%m:%S" >> $log_file
-date +"%s" >> $log_file
-echo "num_cpus: $num_cpus" >> $log_file
+echo "run starting" | tee $log_file
+date +"%m-%d-%y %H:%m:%S" | tee -a $log_file
+date +"%s" | tee -a $log_file
 
-echo >> $log_file
-echo "using cpus: $cpus" >> $log_file
-
-echo >> $log_file
-echo "running these specs:" >> $log_file
+echo | tee -a $log_file
+echo "running these specs:" | tee -a $log_file
 for spec in "${specs[@]}"; do
-    echo "$spec" >> $log_file
+    echo "$spec" | tee -a $log_file
 done
 
 lein compile | tee -a $log_file
@@ -62,7 +51,7 @@ for spec in "${specs[@]}"; do
     base=$output_dir/$base
 
     # run the spec and do the output
-    NUM_JAVA_THREADS=$num_cpus taskset -c "$cpus" lein benchmark $spec | tee $base
+    lein benchmark $spec | tee $base
 done
 
 echo "finished test" >> $log_file
