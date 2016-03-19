@@ -1,5 +1,3 @@
-(set! *warn-on-reflection* true)
-
 (ns benchmark.fib
   (:require [criterium.core :as cr])
   (:require [com.dpzmick.parallel-macros.parexpr :refer [parexpr]])
@@ -28,6 +26,7 @@
        m2 (fibparlet (- n 2))]
       (+ m1 m2))))
 
+;; TODO where did my type annotation go :O
 (defparfun fibparfun [^Long n] (< n 31)
   (if (or (= 0 n) (= 1 n))
     1
