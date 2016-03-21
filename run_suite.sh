@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# TODO log cpu usage
+# TODO log git commit hash
+
 display_usage() {
     echo -e "usage $0 output_dir specs_to_run"
     echo -e "where"
@@ -20,7 +23,7 @@ source ./env
 set +a
 
 output_dir=$1
-output_dir=$output_dir/$(date +"%s")
+output_dir=$output_dir/$(date +"%s")-$(hostname)
 log_file=$output_dir/log
 
 tmp=( "$@" )
