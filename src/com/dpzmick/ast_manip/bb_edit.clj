@@ -31,18 +31,19 @@
 (declare recursive-dependency-helper)
 (defn recursive-dependency
   [vname bindings]
+  (log "rec-dep on" vname "bindings" bindings)
   (if (not (apply distinct? (map first bindings)))
     (throw (Exception. multiple-names)))
 
   (let
-    [[deps not-deps] (split-with #(dependency? vname (second %)) bindings)]
+    [[deps not-deps] (correct-split-with #(dependency? vname (second %)) bindings)]
     (recursive-dependency-helper deps not-deps deps)))
 
 ;; worklist holds the new bindings which still need some sort of action
 (defn- recursive-dependency-helper [depends not-dep worklist]
-  ; (println "depends" depends)
-  ; (println "not-dep" not-dep)
-  ; (println "worklist" worklist)
+  (log "depends" depends)
+  (log "not-dep" not-dep)
+  (log "worklist" worklist)
 
   (if (empty? worklist)
     ;; we are done, nothing new was added last time

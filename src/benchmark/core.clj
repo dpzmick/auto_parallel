@@ -1,9 +1,11 @@
 (ns benchmark.core
-  (:require [clojure.java.io :as io])
-  (:require [clojure.string :refer [split starts-with? join]])
-  (:require [benchmark.search :refer :all])
-  (:require [benchmark.tree-sum :refer :all])
-  (:require [benchmark.fib :refer :all]))
+  (:require [clojure.java.io :as io]
+            [clojure.string :refer [split starts-with? join]]
+            [benchmark.search :refer :all]
+            [benchmark.tree-sum :refer :all]
+            [benchmark.fib :refer :all]
+            [benchmark.id3 :refer :all]))
+
 
 (defn- env-expand [string]
   (if (starts-with? string "$")

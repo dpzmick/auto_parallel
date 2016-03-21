@@ -44,3 +44,9 @@
   "true if coll contains elm"
   [coll elm]
   (some #(= elm %) coll))
+
+(defn correct-split-with [pred coll]
+  (let
+    [a (filter pred coll)
+     b (filter #(not (pred %)) coll)]
+    [a b]))

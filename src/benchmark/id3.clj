@@ -2,7 +2,8 @@
 ;; example of a datum {:a true :b false :c true}
 
 (ns benchmark.id3
-  (:require [clojure.pprint :refer :all])
+  (:require [criterium.core :as cr])
+  (:require [com.dpzmick.util :refer :all])
   (:require [com.dpzmick.parallel-macros.defparfun :refer [defparfun]]))
 
 (defn rand-bool [] (case (rand-int 2)
@@ -42,15 +43,45 @@
           (cons split-attr [(id3 left  (rest sattrs) target)
                             (id3 right (rest sattrs) target)]))))))
 
-(defn make-random-data
+(defparfun id3-defparfun [dataset attrs target] (> (count attrs) 50)
+  (if (or (empty? dataset) (empty? attrs))
+    []
+    (let
+      [sattrs (sort-by #(entropy dataset %) attrs)]
+      (if (= (first sattrs) target)
+        []
+        (let [split-attr (first sattrs)
+              left       (filter #(not (has? split-attr %)) dataset)
+              right      (filter #(has? split-attr %) dataset)]
+          (cons split-attr [(id3-defparfun left  (rest sattrs) target)
+                            (id3-defparfun right (rest sattrs) target)]))))))
+
+;; helper functions to generate the dataset
+(defn- make-attrs [m] (take m (map #(keyword (str %)) (range))))
+
+(defn- make-random-data
   [n attrs]
   (let [rand-datum (fn [] (reduce #(assoc %1 %2 (rand-bool)) {} attrs))]
     (take n (repeatedly #(rand-datum)))))
 
-(defn make-attrs [m] (take m (map #(keyword (str %)) (range))))
+(defn- make-random-input [num-attrs num-elemts]
+  (let [attrs (make-attrs num-attrs)]
+    {
+     :attrs attrs
+     :data  (make-random-data num-elemts attrs)
+     }))
 
-(defn doid3 [n m]
-  (let
-    [attrs (make-attrs m)
-     data  (make-random-data n attrs)]
-    (id3 data (rest attrs) (first attrs))))
+(defn create-input-file [num-attrs num-elemts file-to-create]
+  (let [d (make-random-input (read-string num-attrs) (read-string num-elemts))]
+    (spit file-to-create d)))
+
+(defn read-input-file [filename] (read-string (slurp filename)))
+
+(defn id3-serial [filename]
+  (let [{data :data attrs :attrs} (read-input-file filename)]
+    (cr/bench (id3 data (rest attrs) (first attrs)))))
+
+
+(defn id3-parfun [filename]
+  (let [{data :data attrs :attrs} (read-input-file filename)]
+    (cr/bench (id3-defparfun data (rest attrs) (first attrs)))))
