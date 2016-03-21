@@ -31,7 +31,7 @@ Vagrant.configure(2) do |config|
       config.vm.provider "virtualbox" do |v|
         v.customize ["modifyvm", :id, "--memory", opts[:mem]]
         v.customize ["modifyvm", :id, "--cpus", opts[:cpu]]
-        vb.customize ["modifyvm", :id, "--hwvirtex", "off"]
+        v.customize ["modifyvm", :id, "--hwvirtex", "off"]
       end
     end
   end
