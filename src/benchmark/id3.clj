@@ -43,7 +43,7 @@
           (cons split-attr [(id3 left  (rest sattrs) target)
                             (id3 right (rest sattrs) target)]))))))
 
-(defparfun id3-defparfun [dataset attrs target] (> (count attrs) 50)
+(defparfun id3-defparfun [dataset attrs target] (< (count attrs) 25)
   (if (or (empty? dataset) (empty? attrs))
     []
     (let
@@ -80,7 +80,6 @@
 (defn id3-serial [filename]
   (let [{data :data attrs :attrs} (read-input-file filename)]
     (cr/bench (id3 data (rest attrs) (first attrs)))))
-
 
 (defn id3-parfun [filename]
   (let [{data :data attrs :attrs} (read-input-file filename)]
