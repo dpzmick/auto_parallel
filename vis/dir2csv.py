@@ -3,7 +3,10 @@ from __future__ import print_function
 import sys
 from sys import stderr
 from os import listdir
+import json
+import re
 import os.path
+import csv
 
 # converts a directory of output files into a csv file with timings for each run
 # output csv should be in form:
@@ -74,8 +77,8 @@ def handle_trial(input_dir, trial_name):
         print("skipping", file=stderr)
         return []
 
-    cpus_line = filter(lambda l: l.startswith('num_cpus'), lines)
-    num_cpus = int(cpus_line[0].split(":")[1])
+    # cpus_line = filter(lambda l: l.startswith('num_cpus'), lines)
+    # num_cpus = int(cpus_line[0].split(":")[1])
 
     date = int(lines[2])
 
@@ -88,8 +91,57 @@ def handle_trial(input_dir, trial_name):
 
     my_data = []
     for name, time in children_data:
-        my_data.append( (name, num_cpus, date, time) )
+        my_data.append({
+            'spec-name': name,
+            'date': date,
+            'mean-runtime': time
+            })
+
     return my_data
+
+def handle_host(host_dir):
+    print("host: ", host_dir, file=stderr)
+
+    try:
+
+        # get the number of cores this host has
+        mejson = None
+        with open(os.path.join(host_dir, 'gcloud.json')) as me:
+            mejson = json.loads(me.read())
+
+        mename = None
+        with open(os.path.join(host_dir, 'me')) as me:
+            mename = me.readlines()[0].strip()
+
+        me = None
+        for d in mejson:
+            if d[u'name'] == mename:
+                me = d
+                break
+
+        plaform = me['cpuPlatform']
+        # might as well get the number of cores from the name, since its string
+        # manip to get it from the json anyway
+        # of course, find the biggest hack possible and use that
+        cores = int(re.sub(r"\D", "", mename.split('n')[0]))
+
+        # for this host, get all the data from the benchmark directory
+        bdir = os.path.join(host_dir, 'out')
+
+        trials = []
+        for path in listdir(bdir):
+            trials.extend(handle_trial(bdir, path))
+
+        for t in trials:
+            t['platform'] = plaform
+            t['host']     = mename
+            t['cores']    = cores
+
+        return trials
+
+    except Exception, e:
+        print(str(e), file=stderr)
+        return []
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
@@ -99,10 +151,11 @@ if __name__ == "__main__":
     input_dir = sys.argv[1]
     print("Reading from:", input_dir, file=stderr)
 
-    data = []
+    ds = []
     for path in listdir(input_dir):
-        data.extend(handle_trial(input_dir, path))
+        ds.extend(handle_host(os.path.join(input_dir, path)))
 
-    print("spec_name,cores,date,mean_execution_time")
-    for d in data:
-        print("%s,%d,%d,%f" % d)
+    w = csv.DictWriter(sys.stdout, sorted(ds[0].keys()))
+    w.writeheader()
+    for d in ds:
+        w.writerow(d)

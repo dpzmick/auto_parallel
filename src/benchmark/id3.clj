@@ -29,7 +29,6 @@
        (- (* (/ cwithout cdata) (log2 (/ cwithout cdata))))))))
 
 (defn id3
-  "builds a tree using id3"
   [dataset attrs target]
   (if (or (empty? dataset) (empty? attrs))
     []

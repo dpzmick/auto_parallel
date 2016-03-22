@@ -10,9 +10,11 @@ display_usage() {
 }
 
 # configs
-ssh_config_file=/tmp/vagrant-ssh-cfg
+ssh_config_file=~/.ssh/google_compute_engine
 auto_parallel_dir_local=.
-auto_parallel_dir_remote=/home/vagrant/auto_parallel
+auto_parallel_dir_remote=/home/dpzmick/auto_parallel
+zone=us-central1-a
+project=senior-thesis-1257
 
 if [ $# -lt 4 ]
 then
@@ -23,6 +25,7 @@ fi
 num_cpus=$1
 num_boxes=$2
 local_out=$3
+mem=6
 
 # idk
 tmp=( "$@" )
@@ -30,37 +33,45 @@ specs=( "${tmp[@]:3}" )
 specs=$(echo "${specs[*]}")
 
 # bring up all the vms
-# save the hosts to the config file one at a time
 for n in `seq 1 $num_boxes` ; do
     host="cores"$num_cpus"n"$n
-    vagrant up $host
-    vagrant ssh-config $host >> $ssh_config_file
+
+    gcloud compute instances create $host --custom-cpu $num_cpus \
+        --custom-memory $mem --image ap-base-image &
+
+    # vagrant up $host
+    # vagrant ssh-config $host >> $ssh_config_file
 done
+wait
+
+# get the ssh things configured
+gcloud compute config-ssh
 
 # run the benchmarks,
 for n in `seq 1 $num_boxes` ; do
     host="cores"$num_cpus"n"$n
-    ( echo cd $auto_parallel_dir_remote ; echo git pull ; rm -rf out ; \
+    ( echo cd $auto_parallel_dir_remote ; echo git pull ; echo rm -rf out ; \
         echo ./run_suite.sh out $specs) | \
-        { ssh -F $ssh_config_file $host 2>&1 | sed "s/^/$host==>/" ; } &
+        { gcloud compute ssh $host 2>&1 | sed "s/^/$host==>/" ; } &
 done
 wait
 
 # copy the results into the local directory
 for n in `seq 1 $num_boxes` ; do
     host="cores"$num_cpus"n"$n
-    mkdir -p $local_out/$host
-    scp -F $ssh_config_file -r $host:$auto_parallel_dir_remote/out $local_out/$host
+
+    my_out=$local_out/$host-$(date +"%s")
+    mkdir -p $my_out
+    gcloud compute instances list --format=json > $my_out/gcloud.json
+    echo $host > $my_out/me
+
+    scp -r $host.$zone.$project:$auto_parallel_dir_remote/out $my_out
 done
 
 # shut down all the vms
-# for n in `seq 1 $num_boxes` ; do
-#     host="cores"$num_cpus"n"$n
-#     vagrant halt $host
-# done
+for n in `seq 1 $num_boxes` ; do
+    host="cores"$num_cpus"n"$n
+    { yes Y | gcloud compute instances delete $host ; } &
+done
+wait
 
-
-# echo "pulling directory" $auto_parallel_dir_remote/out
-
-# # copy an output dir back
-# rsync -a root@$host:$auto_parallel_dir_remote/out .
