@@ -1,0 +1,4 @@
+fun_to_call,attrs,datas,file_to_make
+benchmark.id3/create-input-file,10,10,benchmark_specs/data/id3-tiny.dat
+benchmark.id3/create-input-file,100,1000,benchmark_specs/data/id3-small.dat
+benchmark.id3/create-input-file,300,1000,benchmark_specs/data/id3-medium.dat
