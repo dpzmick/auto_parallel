@@ -47,6 +47,8 @@ done
 
 lein compile | tee -a $log_file
 
+cat /proc/cpuinfo | tee -a $log_file
+
 # each spec gets its own output file
 for spec in "${specs[@]}"; do
     # setup filenames
