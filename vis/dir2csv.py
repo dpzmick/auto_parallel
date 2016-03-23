@@ -66,38 +66,41 @@ def handle_trial(input_dir, trial_name):
     with open(os.path.join(path, 'log')) as log_f:
         lines = log_f.readlines()
 
-    if lines == None:
-        print("didn't get any lines in the log for", path, file=stderr)
-        return []
+    try:
 
-    lines = map(lambda l: l.strip(), lines)
+        if lines == None:
+            print("didn't get any lines in the log for", path, file=stderr)
+            return []
 
-    if "finished test" not in lines:
-        print("didn't finish the test:", path, file=stderr)
-        print("skipping", file=stderr)
-        return []
+        lines = map(lambda l: l.strip(), lines)
 
-    # cpus_line = filter(lambda l: l.startswith('num_cpus'), lines)
-    # num_cpus = int(cpus_line[0].split(":")[1])
+        if "finished test" not in lines:
+            print("didn't finish the test:", path, file=stderr)
+            print("skipping", file=stderr)
+            return []
 
-    date = int(lines[2])
+        date = int(lines[2])
 
-    children_data = []
-    for f in listdir(path):
-        if f == 'log' or f == 'env':
-            continue
+        children_data = []
+        for f in listdir(path):
+            if f == 'log' or f == 'env':
+                continue
 
-        children_data.append(handle_single_spec(path, f))
+            children_data.append(handle_single_spec(path, f))
 
-    my_data = []
-    for name, time in children_data:
-        my_data.append({
-            'spec-name': name,
-            'date': date,
-            'mean-runtime': time
-            })
+        my_data = []
+        for name, time in children_data:
+            my_data.append({
+                'spec-name': name,
+                'date': date,
+                'mean-runtime': time
+                })
 
-    return my_data
+        return my_data
+
+    except Exception, e:
+        print(str(e), file=stderr)
+        return {}
 
 def handle_host(host_dir):
     print("host: ", host_dir, file=stderr)

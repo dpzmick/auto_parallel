@@ -1,46 +1,55 @@
 \documentclass{sig-alternate}
+% \usepackage[none]{hyphenat}
+\usepackage{hyperref}
+
 \usepackage{minted}
 \usemintedstyle{emacs}
+
+\bibliographystyle{plain}
 
 \def\mintcode#1{\mbox{\mintinline{clojure}{#1}}}
 \def\code#1{\mbox{\texttt{#1}}}
 \def\parlet{\code{parlet}}
 
+\author{
+    Zmick, David\\
+    \texttt{zmick2@illinois.edu}
+}
+
+\title{Macros for straightforward parallelism in Clojure}
+
 \begin{document}
+
+\maketitle
 
 % question: Can macros be used to create interesting and useful parallelism
 % tools for recursive functions in clojure.
 \section{Introduction}
-% most important section in paper:
-% - introduce the problem being solved
-% - prove that this problem is interesting
-% - why is this hard?
-% - how does it differ from other approaches?
-% - what are key results/limitations
 Clojure is a lisp--like language running on the Java Virtual Machine.
-The language's default immutable data structures and it's sophisticated STM system make it well suited for parallel and concurrent programming.
-Additionally, because Clojure runs on the Java Virtual Machine, Clojure developers can take advantage of existing cross--platform parallelism libraries, such as Java's excellent \code{ExecutorService} framework, to write parallel code.
+The language's default immutable data structures and it's sophisticated Software Transactional Memory (STM) system make it well suited for parallel programming.
+Because Clojure runs on the Java Virtual Machine, Clojure developers can take advantage of existing cross--platform parallelism libraries, such as Java's excellent \code{ExecutorService} framework, to write parallel code.
 
-Taking advantage of Clojure's parallel potential is not entirely straightforward, however.
-Interfacing with Java libraries directly is simple, but the interface code often feels slightly out of place when surrounded by other Clojure code.
-The STM system is easy to use, but the STM constructs are often too low level to be immediately useful.
 % for example, writing a parallel map with atoms would be a big pain
+Taking advantage of Clojure's parallel potential is not entirely straightforward, however.
+STM has proven to be very successful as a clear construct for concurrent programming\cite{Jones2007a}, but these constructs are often too low level to be of much use to developers whose central concern is not parallelism\cite{Boehm2009}.
 
-% is control flow the right word here? I feel like something else might be more appropriate.
-% Recursion is control flow, parlet is control flow, so I guess it makes sense.
-As a result, there are a variety of libraries designed to allow developers to take advantage of the parallelism and concurrency potential in the language.
+As a result, there are a variety of libraries designed to allow developers to take advantage of the parallelism potential in Clojure.\footnotemark{}\footnotemark{}\footnotemark{}\footnotemark{}\footnotemark{}
 Many of these library functions and builtins are data-parallel; they are designed to apply some sort of operation to a set of data.
-This is often the kind of parallelism that developers desire, or are accustomed to identifying, but Clojure's nature as a functional language with immutable structures also makes it possible to exploit parallelism in the control flow of the code.
+This is often the kind of parallelism that developers desire\cite{Okur2012a} but Clojure's nature as a functional language with immutable structures also makes it possible to easily exploit control parallelism (also known as task parallelism\cite{Andradea}).
+
+\footnotetext[1]{\url{https://github.com/clojure/core.async}}
+\footnotetext[2]{\url{https://github.com/TheClimateCorporation/claypoole}}
+\footnotetext[3]{\url{https://clojuredocs.org/clojure.core/pmap}}
+\footnotetext[4]{\url{http://clojure.org/reference/reducers}}
+\footnotetext[5]{\url{https://github.com/aphyr/tesser}}
 
 % even if it is expressed in control flow, it is still data parallelism probably
-Using Clojure's macro system, we have implemented a few macros which allow developers to take advantage of Clojure's parallelism potential when their parallelism is more directly expressed in the control flow of their application.
-We have shown that it is possible to attain noticeable degrees of parallelism with minimal code changes (with respect to serial code) through these macros, without the need for sophisticated dependency analysis (find OpenMP paper) often required in other parallelism systems.
+Using Clojure's macro system, we have implemented a set of macros which allow developers to take advantage of Clojure's parallelism potential when their existing code is written such that parallelism is exposed through control flow.
+We have shown that it is possible to attain noticeable degrees of parallelism with minimal code changes (with respect to serial code), without the need for sophisticated dependency analysis  often required in other parallelism systems.
 
 % the other existing libraries are also a testament to this statement
 % we sort of side stepped this by saying that the macros only work on pure code.
 % Need to demonstrate that idiotmatic clojure code is actually pure and that these macros actually make sense.
-
-This paper is divided into $n$ sections. The first discusses the macros we've implemented, along with the appropriate use cases for each. In the second section, we present benchmarks demonstrating the cases in which the parallelism macros can (and cannot) improve performance of existing code.
 
 \section{Macros}
 \subsection{parlet}
@@ -63,15 +72,13 @@ In Figure \ref{fig:parlet_basic}, we use \parlet{} to make two calls to \code{fo
     \label{fig:parlet_basic}
 \end{figure}
 
-In this example, the expressions \mintcode{(foo value1)} and \mintcode{(foo value2)} are both evaluated as \code{ForkJoinTask}s in a \code{ForkJoinPool}.
+In this example, the expressions \mintcode{(foo value1)} and \mintcode{(foo value2)} are both evaluated as \code{ForkJoinTask}s in a \code{ForkJoinPool}\cite{Lea2000}.
 
 The calls to \code{foo} are both \code{forked} immediately, then we attempt to evaluate the body of the \code{let}.
 This means that the code in the body of the \code{let} which does not depend on the computations of \code{a} and \code{b} can execute without delay.
 
 This transformation is obviously only safe when \code{foo} does not have side effects which may impact the other code in the function, or the values of terms used in subsequent let terms.
 In Clojure, it is very common (although not guaranteed by the compiler) for function calls to be pure.
-
-
 
 Nested parlet macros will also behave quite well.
 
@@ -171,5 +178,7 @@ ForkJoin pools are designed to handle this type of computation, so the computati
 \section{Conclusions}
 % the jvm is (mostly) awesome
 % immutability makes things like this really straightforward
+
+\bibliography{/home/dpzmick/Documents/Bibtex/senior-thesis.bib}
 
 \end{document}
