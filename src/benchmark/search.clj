@@ -27,7 +27,14 @@
                               (swap! found (fn [n] true))
                               true)
 
-                            (or (searchpar value a) (searchpar value b)))))))
+                            ;; can't use an or, because it creates an if.
+                            ;; an if *always* forces evaluation, so the or would
+                            ;; serialize
+                            ;; TODO create paror
+                            (let
+                              [l (searchpar value a)
+                               r (searchpar value b)]
+                              (or l r)))))))
 
 (declare searchserial)
 
