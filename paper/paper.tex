@@ -26,16 +26,16 @@
 % tools for recursive functions in clojure.
 \section{Introduction}
 Clojure is a lisp--like language running on the Java Virtual Machine.
-The language's default immutable data structures and it's sophisticated Software Transactional Memory (STM) system make it well suited for parallel programming.
+The language's default immutable data structures and sophisticated Software Transactional Memory (STM) system make it well suited for parallel programming.
 Because Clojure runs on the Java Virtual Machine, Clojure developers can take advantage of existing cross--platform parallelism libraries, such as Java's excellent \code{ExecutorService} framework, to write parallel code.
 
 % for example, writing a parallel map with atoms would be a big pain
 Taking advantage of Clojure's parallel potential is not entirely straightforward, however.
-STM has proven to be very successful as a clear construct for concurrent programming\cite{Jones2007a}, but these constructs are often too low level to be of much use to developers whose central concern is not parallelism\cite{Boehm2009}.
+STM has proven to be very successful as a clear construct for concurrent programming\cite{Jones2007a}, but these constructs are often too low level to be of much use to developers whose central concerns are not parallelism\cite{Boehm2009}.
 
 As a result, there are a variety of libraries designed to allow developers to take advantage of the parallelism potential in Clojure.\footnotemark{}\footnotemark{}\footnotemark{}\footnotemark{}\footnotemark{}
 Many of these library functions and builtins are data-parallel; they are designed to apply some sort of operation to a set of data.
-This is often the kind of parallelism that developers desire\cite{Okur2012a} but Clojure's nature as a functional language with immutable structures also makes it possible to easily exploit control parallelism (also known as task parallelism\cite{Andradea}).
+Developers have a good relationship with data parallel problems\cite{Okur2012a}, but Clojure's nature as a functional language with immutable structures also makes it possible to easily exploit control parallelism (also known as task parallelism\cite{Andradea, Rodr}).
 
 \footnotetext[1]{\url{https://github.com/clojure/core.async}}
 \footnotetext[2]{\url{https://github.com/TheClimateCorporation/claypoole}}
@@ -46,6 +46,7 @@ This is often the kind of parallelism that developers desire\cite{Okur2012a} but
 % even if it is expressed in control flow, it is still data parallelism probably
 Using Clojure's macro system, we have implemented a set of macros which allow developers to take advantage of Clojure's parallelism potential when their existing code is written such that parallelism is exposed through control flow.
 We have shown that it is possible to attain noticeable degrees of parallelism with minimal code changes (with respect to serial code), without the need for sophisticated dependency analysis  often required in other parallelism systems.
+% indicate that we cooperate with STM and other clojure constructs
 
 % the other existing libraries are also a testament to this statement
 % we sort of side stepped this by saying that the macros only work on pure code.
