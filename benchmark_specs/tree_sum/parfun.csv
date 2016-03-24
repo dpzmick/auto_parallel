@@ -1,2 +1,2 @@
-benchmark_function_name,n,num_threads
-benchmark.tree-sum/sum-parfun,$TREE_SUM_N,$NUM_JAVA_THREADS
+benchmark_function_name,n
+benchmark.tree-sum/sum-parfun,$TREE_SUM_N

@@ -40,8 +40,8 @@
 (defn- depth-num [threads]
   (Math/round (/ (Math/log threads) (Math/log 2))))
 
-(defn sum-parfun [n threads]
+(defn sum-parfun [n]
   (let [tree (make-tree (read-string n))
-        dn   (depth-num (read-string threads))]
+        dn   (.availableProcessors (Runtime/getRuntime))]
     (println "input constructed, here we go")
     (cr/bench (sump tree 0 dn))))
