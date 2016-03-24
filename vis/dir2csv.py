@@ -123,6 +123,8 @@ def handle_host(host_dir):
                 break
 
         plaform = me['cpuPlatform']
+        meid    = me['id']
+
         # might as well get the number of cores from the name, since its string
         # manip to get it from the json anyway
         # of course, find the biggest hack possible and use that
@@ -139,6 +141,7 @@ def handle_host(host_dir):
             t['platform'] = plaform
             t['host']     = mename
             t['cores']    = cores
+            t['host-id']  = meid
 
         return trials
 
