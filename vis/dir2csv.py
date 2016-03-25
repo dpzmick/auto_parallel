@@ -57,6 +57,8 @@ def handle_single_spec(trial_dir, spec_name):
 
 
 def handle_trial(input_dir, trial_name):
+    print("trial: ", trial_name, file=stderr)
+
     path = os.path.join(input_dir, trial_name)
     trial_date = trial_name.split('-')[1]
 
@@ -105,49 +107,47 @@ def handle_trial(input_dir, trial_name):
 def handle_host(host_dir):
     print("host: ", host_dir, file=stderr)
 
-    try:
+    # get the number of cores this host has
+    mejson = None
+    with open(os.path.join(host_dir, 'gcloud.json')) as me:
+        mejson = json.loads(me.read())
 
-        # get the number of cores this host has
-        mejson = None
-        with open(os.path.join(host_dir, 'gcloud.json')) as me:
-            mejson = json.loads(me.read())
+    mename = None
+    with open(os.path.join(host_dir, 'me')) as me:
+        mename = me.readlines()[0].strip()
 
-        mename = None
-        with open(os.path.join(host_dir, 'me')) as me:
-            mename = me.readlines()[0].strip()
+    me = None
+    for d in mejson:
+        if d[u'name'] == mename:
+            me = d
+            break
 
-        me = None
-        for d in mejson:
-            if d[u'name'] == mename:
-                me = d
-                break
+    plaform = me['cpuPlatform']
+    meid    = me['id']
 
-        plaform = me['cpuPlatform']
-        meid    = me['id']
+    # might as well get the number of cores from the name, since its string
+    # manip to get it from the json anyway
+    # of course, find the biggest hack possible and use that
+    cores = int(re.sub(r"\D", "", mename.split('n')[0]))
 
-        # might as well get the number of cores from the name, since its string
-        # manip to get it from the json anyway
-        # of course, find the biggest hack possible and use that
-        cores = int(re.sub(r"\D", "", mename.split('n')[0]))
+    # for this host, get all the data from the benchmark directory
+    bdir = os.path.join(host_dir, 'out')
 
-        # for this host, get all the data from the benchmark directory
-        bdir = os.path.join(host_dir, 'out')
+    trials = []
+    for path in listdir(bdir):
+        trials.extend(handle_trial(bdir, path))
 
-        trials = []
-        for path in listdir(bdir):
-            trials.extend(handle_trial(bdir, path))
+    for t in trials:
+        t['platform'] = plaform
+        t['host']     = mename
+        t['cores']    = cores
+        t['host-id']  = meid
 
-        for t in trials:
-            t['platform'] = plaform
-            t['host']     = mename
-            t['cores']    = cores
-            t['host-id']  = meid
+    return trials
 
-        return trials
-
-    except Exception, e:
-        print(str(e), file=stderr)
-        return []
+    # except Exception, e:
+    #     print(str(e), file=stderr)
+    #     return []
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
@@ -159,6 +159,9 @@ if __name__ == "__main__":
 
     ds = []
     for path in listdir(input_dir):
+        if path == ".git":
+            continue
+
         ds.extend(handle_host(os.path.join(input_dir, path)))
 
     w = csv.DictWriter(sys.stdout, sorted(ds[0].keys()))

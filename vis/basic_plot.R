@@ -38,24 +38,16 @@ host_speedups_for_bench <- function(data, benchmark, parfun_type) {
 
 plot_means_error_for_benchmark <- function(data, benchmark, parfun_type) {
   d <- host_speedups_for_bench(data, benchmark, parfun_type)[,c("cores", "speedup")]
+  
+  boxplot(speedup ~ cores, data=d,
+          main=paste(parfun_type, "speedup for", benchmark, "from", nrow(d), "trials", sep=" "),
+          xlab="number of cores",
+          ylab="speedup w.r.t serial version"
+  )
+  
   means <- ddply(d, "cores", colwise(mean))
   sds <- ddply(d, "cores", colwise(sd))
   sumr <- merge(means, sds, "cores", suffixes=c(".mean", ".sd"))
-  
-  max_mean = max(unlist(lapply(sumr$speedup.mean, function(x) if(is.na(x)) -Inf else x)))
-  max_sd   = max(unlist(lapply(sumr$speedup.sd+sumr$speedup.mean, function(x) if(is.na(x)) -Inf else x)))
-  
-  plot(sumr$cores, sumr$speedup.mean, ylim=c(0,max(max_sd, max_mean)), xlab = "", ylab = "")
-  
-  title(
-    paste(parfun_type, "speedup for", benchmark, sep=" "),
-    xlab="number of cores",
-    ylab="speedup w.r.t serial version")
-  
-  with (
-    data = sumr
-    , expr = errbar(cores, speedup.mean, speedup.mean+speedup.sd, speedup.mean-speedup.sd, add=T, pch=1, cap=.1)
-  )
   
   return(sumr)
 }
