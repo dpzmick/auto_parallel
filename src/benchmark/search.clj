@@ -10,9 +10,11 @@
 (def found (atom false))
 (defn parwrap [value lst]
   (swap! found (fn [n] false))
-  (searchpar value lst))
+  (let [grain (/ (count lst)
+                 (.availableProcessors (Runtime/getRuntime)))]
+    (searchpar value lst grain)))
 
-(defparfun searchpar [value lst] (< 10000 (count lst))
+(defparfun searchpar [value lst grain] (< grain (count lst))
   (if @found
     true
 
@@ -32,8 +34,8 @@
                             ;; serialize
                             ;; TODO create paror
                             (let
-                              [l (searchpar value a)
-                               r (searchpar value b)]
+                              [l (searchpar value a grain)
+                               r (searchpar value b grain)]
                               (or l r)))))))
 
 (declare searchserial)
