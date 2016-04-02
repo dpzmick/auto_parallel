@@ -45,7 +45,8 @@ Developers have a good relationship with data parallel problems\cite{Okur2012a},
 
 % even if it is expressed in control flow, it is still data parallelism probably
 Using Clojure's macro system, we have implemented a set of macros which allow developers to take advantage of Clojure's parallelism potential when their existing code is written such that parallelism is exposed through control flow.
-We have shown that it is possible to attain noticeable degrees of parallelism with minimal code changes (with respect to serial code), without the need for sophisticated dependency analysis  often required in other parallelism systems.
+We have shown that it is possible to attain reasonable degrees of parallelism with minimal code changes (with respect to serial code).
+These transformation can be applied to idiomatic Clojure code without the need for sophisticated dependency analysis often required in other parallelism systems.
 % indicate that we cooperate with STM and other clojure constructs
 
 % the other existing libraries are also a testament to this statement

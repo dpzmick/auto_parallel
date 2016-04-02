@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# should never be run from the scripts directory
+
 display_usage() {
     echo -e "usage $0 num_cpus num_boxes local_out specs"
     echo -e "where"
