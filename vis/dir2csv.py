@@ -53,7 +53,11 @@ def handle_single_spec(trial_dir, spec_name):
 
     mean_time = to_micros(mean_time_base, mean_time_unit)
 
-    return (spec_name, mean_time)
+    # get the args
+    args_line = filter(lambda l: l.startswith("running"), lines)[0]
+    args = re.findall('\((.*)\)', args_line)[0]
+
+    return (spec_name, mean_time, args.split(' '))
 
 
 def handle_trial(input_dir, trial_name):
@@ -91,12 +95,17 @@ def handle_trial(input_dir, trial_name):
             children_data.append(handle_single_spec(path, f))
 
         my_data = []
-        for name, time in children_data:
-            my_data.append({
+        for name, time, args in children_data:
+            medat = {
                 'spec-name': name,
                 'date': date,
                 'mean-runtime': time
-                })
+                }
+
+            for i, arg in enumerate(args):
+                medat['args' + str(i)] = arg
+
+            my_data.append(medat)
 
         return my_data
 

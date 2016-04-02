@@ -3,12 +3,11 @@
 # should never be run from the scripts directory
 
 display_usage() {
-    echo -e "usage $0 num_cpus num_boxes local_out specs"
+    echo -e "usage $0 num_cpus num_boxes local_out"
     echo -e "where"
     echo -e "\tnum_cpus  - number of cpus in each vm"
     echo -e "\tnum_boxes - number of vms to create"
     echo -e "\tlocal_out - local directory to put output in"
-    echo -e "\tspecs - specs to run, relative to the auto_parallel root on the remote"
 }
 
 # configs
@@ -18,7 +17,7 @@ auto_parallel_dir_remote=/home/dpzmick/auto_parallel
 zone=us-central1-a
 project=senior-thesis-1257
 
-if [ $# -lt 4 ]
+if [ $# -lt 3 ]
 then
     display_usage
     exit 1
@@ -28,11 +27,6 @@ num_cpus=$1
 num_boxes=$2
 local_out=$3
 mem=6
-
-# idk
-tmp=( "$@" )
-specs=( "${tmp[@]:3}" )
-specs=$(echo "${specs[*]}")
 
 # bring up all the vms
 for n in `seq 1 $num_boxes` ; do
@@ -53,7 +47,7 @@ gcloud compute config-ssh
 for n in `seq 1 $num_boxes` ; do
     host="cores"$num_cpus"n"$n
     ( echo cd $auto_parallel_dir_remote ; echo git pull ; echo rm -rf out ; \
-        echo ./run_suite.sh out $specs) | \
+        echo scripts/run_java_suite.sh out) | \
         { gcloud compute ssh $host 2>&1 | sed "s/^/$host==>/" ; } &
 done
 wait
