@@ -35,7 +35,11 @@ class FibTask extends RecursiveTask<Integer> {
         FibTask f1 = new FibTask(n_ - 1, grain_);
         FibTask f2 = new FibTask(n_ - 2, grain_);
         f1.fork();
-        return f1.join() + f2.compute();
+
+        Integer this_thread = f2.compute();
+        Integer other_thread = f1.join();
+
+        return this_thread + other_thread;
     }
 }
 
@@ -67,6 +71,12 @@ public class App {
     }
 
     public static void main(String[] args) {
-        Runner.main(Benchmark.class, new String[0]);
+        // Runner.main(Benchmark.class, new String[0]);
+        System.out.println("hello world");
+        ForkJoinPool pool = new ForkJoinPool();
+        int n = Integer.parseInt(System.getenv("BIG_FIB"));
+        FibTask f = new FibTask(n, 31);
+        Integer res = pool.invoke(f);
+        System.out.println(res);
     }
 }
