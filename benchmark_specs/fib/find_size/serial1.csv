@@ -1,0 +1,2 @@
+benchmark_function_name,n
+benchmark.fib/fib-serial,35
