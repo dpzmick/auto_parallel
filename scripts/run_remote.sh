@@ -53,7 +53,7 @@ gcloud compute config-ssh
 for n in `seq 1 $num_boxes` ; do
     host="cores"$num_cpus"n"$n
     ( echo cd $auto_parallel_dir_remote ; echo git pull ; echo rm -rf out ; \
-        echo ./run_suite.sh out $specs) | \
+        echo scripts/run_suite.sh out $specs) | \
         { gcloud compute ssh $host 2>&1 | sed "s/^/$host==>/" ; } &
 done
 wait
