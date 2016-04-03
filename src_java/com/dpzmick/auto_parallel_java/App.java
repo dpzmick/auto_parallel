@@ -71,12 +71,12 @@ public class App {
     }
 
     public static void main(String[] args) {
-        // Runner.main(Benchmark.class, new String[0]);
-        System.out.println("hello world");
-        ForkJoinPool pool = new ForkJoinPool();
-        int n = Integer.parseInt(System.getenv("BIG_FIB"));
-        FibTask f = new FibTask(n, 31);
-        Integer res = pool.invoke(f);
-        System.out.println(res);
+        Runner.main(Benchmark.class, new String[0]);
+        // System.out.println("hello world");
+        // ForkJoinPool pool = new ForkJoinPool();
+        // int n = Integer.parseInt(System.getenv("BIG_FIB"));
+        // FibTask f = new FibTask(n, 31);
+        // Integer res = pool.invoke(f);
+        // System.out.println(res);
     }
 }
