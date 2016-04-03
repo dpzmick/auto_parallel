@@ -27,7 +27,7 @@
       (+ m1 m2))))
 
 ;; TODO where did my type annotation go :O
-(defparfun fibparfun [^Long n] (< n 31)
+(defparfun fibparfun [^Long n] (< n 35)
   (if (or (= 0 n) (= 1 n))
     1
     (+
