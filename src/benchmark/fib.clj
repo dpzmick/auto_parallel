@@ -44,7 +44,10 @@
 
 ;; define a handful of benchmark functions
 (defn fib-parfun [nstr]
-  (cr/bench (fibparfun (read-string nstr))))
+  (cr/bench (do
+              (println "\n\nactually starting\n\n")
+              (println "result:" (fibparfun (read-string nstr)))
+              (println "\n\nfib done\n\n"))))
 
 (defn fib-parexpr [nstr]
   (cr/bench (fibparexpr (read-string nstr))))
