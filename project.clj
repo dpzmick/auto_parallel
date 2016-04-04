@@ -13,7 +13,7 @@
             "jbenchmark" ["with-profile" "production" "run" "-m" "com.dpzmick.auto_parallel_java.App"]
             "slamhound" ["run" "-m" "slam.hound"]}
 
-  :jvm-opts ["-server" "-Xms5G" "-Xmx5G" "-verbose:gc"]
+  :jvm-opts ["-server" "-Xms5G" "-Xmx5G"] ;"-verbose:gc"]
 
   :java-source-paths ["src_java/"]
 
