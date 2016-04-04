@@ -13,8 +13,8 @@
              :benchmark {:aot :all
                          :jvm-opts ["-server"]}}
 
-  :aliases {"benchmark" ["with-profile" "benchmark" "run" "-m" "benchmark.core"]
-            "jbenchmark" ["with-profile" "benchmark" "run" "-m" "com.dpzmick.auto_parallel_java.App"]
+  :aliases {"benchmark" ["with-profile" "production" "run" "-m" "benchmark.core"]
+            "jbenchmark" ["with-profile" "production" "run" "-m" "com.dpzmick.auto_parallel_java.App"]
             "slamhound" ["run" "-m" "slam.hound"]}
 
   :jvm-opts ["-server"]
