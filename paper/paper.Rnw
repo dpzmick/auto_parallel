@@ -25,6 +25,11 @@
 % question: Can macros be used to create interesting and useful parallelism
 % tools for recursive functions in clojure.
 \section{Introduction}
+Some text
+<<RTest>>=
+2+2+2
+@
+
 Clojure is a lisp--like language running on the Java Virtual Machine.
 The language's default immutable data structures and sophisticated Software Transactional Memory (STM) system make it well suited for parallel programming.
 Because Clojure runs on the Java Virtual Machine, Clojure developers can take advantage of existing cross--platform parallelism libraries, such as Java's excellent \code{ExecutorService} framework, to write parallel code.
