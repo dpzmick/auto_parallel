@@ -57,7 +57,46 @@ def handle_single_spec(trial_dir, spec_name):
     args_line = filter(lambda l: l.startswith("running"), lines)[0]
     args = re.findall('\((.*)\)', args_line)[0]
 
+    variance_lines = filter(lambda l: "variance" in l.lower(), lines)
+    if len(variance_lines) != 0:
+        vline = variance_lines[0]
+        if "severely" in vline.lower():
+            print("ignored ", trial_dir, spec_name, file=stderr)
+            return None
+
     return (spec_name, mean_time, args.split(' '))
+
+def java_trial(input_dir, trial_name):
+    # trial is in log.bench
+    lines = []
+    with open(os.path.join(input_dir, trial_name, "log.bench")) as bench:
+        lines = bench.readlines()
+
+    unit_line = filter(lambda l: "runtime" in l.lower(), lines)[0]
+    unit = unit_line.split()[1]
+
+    # need to get the serial time and the FJ time
+    fj_line = filter(lambda l: "FibFJ" in l, lines)[1]
+    fj_time = to_micros(float(fj_line.split()[1]), unit)
+
+    serial_line = filter(lambda l: "FibSerial" in l, lines)[1]
+    serial_time = to_micros(float(serial_line.split()[1]), unit)
+
+    m1 = {
+        'spec-name': 'fib.fj_java',
+        'mean-runtime': fj_time,
+        'args0': None,
+        'date': None
+    }
+
+    m2 = {
+        'spec-name': 'fib.serial_java',
+        'mean-runtime': serial_time,
+        'args0': None,
+        'date': None
+    }
+
+    return [m1, m2]
 
 
 def handle_trial(input_dir, trial_name):
@@ -92,7 +131,11 @@ def handle_trial(input_dir, trial_name):
             if f == 'log' or f == 'env':
                 continue
 
-            children_data.append(handle_single_spec(path, f))
+            d = handle_single_spec(path, f)
+            if d == None:
+                return []
+
+            children_data.append(d)
 
         my_data = []
         for name, time, args in children_data:
@@ -144,7 +187,10 @@ def handle_host(host_dir):
 
     trials = []
     for path in listdir(bdir):
-        trials.extend(handle_trial(bdir, path))
+        if 'is_java' in listdir(os.path.join(bdir, path)):
+            trials.extend(java_trial(bdir, path))
+        else:
+            trials.extend(handle_trial(bdir, path))
 
     for t in trials:
         t['platform'] = plaform
@@ -168,7 +214,7 @@ if __name__ == "__main__":
 
     ds = []
     for path in listdir(input_dir):
-        if path == ".git":
+        if path == ".git" or path == "archive":
             continue
 
         ds.extend(handle_host(os.path.join(input_dir, path)))

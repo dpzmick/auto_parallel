@@ -56,7 +56,7 @@ public class App {
         public void timeFibFJ(int reps) {
             for (int i = 0; i < reps; i++) {
                 ForkJoinPool pool = new ForkJoinPool();
-                FibTask f = new FibTask(n, 31);
+                FibTask f = new FibTask(n, 35);
                 Integer res = pool.invoke(f);
                 System.out.println(res);
             }
