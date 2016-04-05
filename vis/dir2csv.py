@@ -34,7 +34,11 @@ def to_micros(b, unit):
     raise Exception("fixmepls")
 
 def handle_single_spec(trial_dir, spec_name):
-    print(trial_dir, spec_name, file=stderr)
+    print("single_spec: ", trial_dir, spec_name, file=stderr)
+
+    if "make_data" in spec_name:
+        print("returning none", file=stderr)
+        return None
 
     lines = None
     with open(os.path.join(trial_dir, spec_name)) as f:
@@ -133,7 +137,7 @@ def handle_trial(input_dir, trial_name):
 
             d = handle_single_spec(path, f)
             if d == None:
-                return []
+                continue
 
             children_data.append(d)
 
