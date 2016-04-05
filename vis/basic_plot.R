@@ -40,7 +40,7 @@ plot_means_error_for_benchmark <- function(data, benchmark, parfun_type) {
   d <- host_speedups_for_bench(data, benchmark, parfun_type)[,c("cores", "speedup")]
   
   boxplot(speedup ~ cores, data=d,
-          main=paste(parfun_type, "speedup for", benchmark, "from", nrow(d), "trials", sep=" "),
+          main=paste("speedup from", nrow(d), "trials", sep=" "),
           xlab="number of cores",
           ylab="speedup w.r.t serial version"
   )
@@ -60,5 +60,5 @@ plot_runtimes_scatter <- function(data, benchmark, parfun_type) {
   points(serial, col="red")
 }
 
-data <- read.csv("data.csv", header=TRUE, sep=",")
+# data <- read.csv("data.csv", header=TRUE, sep=",")
 # plot_means_error_for_benchmark(dat, "id3.small", "parfun")

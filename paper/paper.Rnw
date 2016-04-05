@@ -1,5 +1,4 @@
-\documentclass{sig-alternate}
-% \usepackage[none]{hyphenat}
+\documentclass{article}
 \usepackage{hyperref}
 
 \usepackage{minted}
@@ -19,16 +18,16 @@
 \title{Macros for straightforward parallelism in Clojure}
 
 \begin{document}
+<<include=FALSE>>=
+source("../vis/basic_plot.R")
+data <- read.csv("../newopts.csv")
+@
 
 \maketitle
 
 % question: Can macros be used to create interesting and useful parallelism
 % tools for recursive functions in clojure.
 \section{Introduction}
-Some text
-<<RTest>>=
-2+2+2
-@
 
 Clojure is a lisp--like language running on the Java Virtual Machine.
 The language's default immutable data structures and sophisticated Software Transactional Memory (STM) system make it well suited for parallel programming.
@@ -181,6 +180,13 @@ ForkJoin pools are designed to handle this type of computation, so the computati
 \subsection{Setup}
 
 \section{Results}
+<<javafib, fig.pos="H", fig.cap="Fibonacci Java Performance", echo=F>>=
+jfib <- plot_means_error_for_benchmark(data, "fib", "fj")
+@
+
+<<fibparfun, fig.pos="H", fig.cap="Fibonacci Clojure (defparfun) Performance", echo=F>>=
+cljfib <- plot_means_error_for_benchmark(data, "fib", "parfun")
+@
 
 \section{Conclusions}
 % the jvm is (mostly) awesome
