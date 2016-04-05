@@ -30,7 +30,7 @@ The language's default immutable data structures and sophisticated Software Tran
 Because Clojure runs on the Java Virtual Machine, Clojure developers can take advantage of existing cross--platform parallelism libraries, such as Java's excellent \code{ExecutorService} framework, to write parallel code.
 
 % for example, writing a parallel map with atoms would be a big pain
-Taking advantage of Clojure's parallel potential is not entirely straightforward, however.
+However, taking advantage of Clojure's parallel potential is not entirely straightforward.
 STM has proven to be very successful as a clear construct for concurrent programming\cite{Jones2007a}, but these constructs are often too low level to be of much use to developers whose central concerns are not parallelism\cite{Boehm2009}.
 
 As a result, there are a variety of libraries designed to allow developers to take advantage of the parallelism potential in Clojure.\footnotemark{}\footnotemark{}\footnotemark{}\footnotemark{}\footnotemark{}
