@@ -30,7 +30,8 @@
 \begin{document}
 <<include=FALSE>>=
 source("../vis/basic_plot.R")
-data <- read.csv("../newnew.csv")
+# data <- read.csv("../newnew.csv")
+data <- read.csv("../data.csv")
 @
 
 \maketitle
