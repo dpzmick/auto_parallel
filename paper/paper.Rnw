@@ -361,7 +361,8 @@ Notice that the Java results do not have nearly as high deviations from mean run
 While I cannot completely explain the variability, it seems to be caused by the increased pressure Clojure's function implementation and the \code{ForkJoinPool} wrapper tasks places on the JVM garbage collector.
 Every Clojure function is an \code{Object} created following the Clojure \code{IFn} interface\footnote{\url{http://clojure.org/reference/special_forms\#fn}}.
 When running on the \code{ForkJoinPool}, each function is further wrapped in a \code{RecursiveTask} object, causing additional allocations.
-The large number of allocations causes additional garbage collector work.
+This effectively moves the stack for the recursive function to the heap.
+There is so upside to this; it eliminates the stack depth limit (which is an issue in Clojure because Clojure cannot implement tail call optimization), the large number of allocations creates a large amount garbage collector pressure.
 The garbage collector behaves somewhat non---deterministically, so I believe this is the explanation for the large variation in runtime for the serial and recursive Fibonacci code.
 We can avoid excessive task creation by controlling the granularity of parallelism, to an extent.
 The Fibonacci example highlights this problem because the function call overhead greatly exceeds the amount of work each call is doing.
@@ -408,7 +409,19 @@ id3 <- plot_means_error_for_benchmark(data, "id3", "parfun")
 @
 
 \section{Conclusions and Future Work}
-Clojure's conventions make transformations like this possible, and simple.
+The Clojure macros I've implemented perform transformation which can speedup Clojure code to a degree which matches the speedups attained using handwritten Java code, running on the same hardware.
+Parallelism is difficult, and automatic parallelism is possible\cite{Banerjee1993}, but these techniques are complicated and often do not get the desired results and the research community has begun to feel the need for explicit parallelism in programs.\cite{Arvind2010}
+Languages like Clojure are well suited for this parallelism and techniques like mine can easily be implemented.
+In a language with a strong STM system and immutable structures, such transformations are easy to reason about, making it much simpler for programmers to implement explicitly parallel programs.
+
+Macros of this style do not inhibit the programmers ability to use the other mechanisms implemented in the language, although interoperability with them could be improved.
+For example, one of the tests which was not discussed in this paper involved using the STM system from within a function declared with \defparfun{}.
+Benchmarks on this code behaved correctly and performance improved as expected.
+However, if a programmer attempted to use a \code{pmap} or \code{future} inside of a \defparfun{} or \parlet{}, the two systems would create separate thread pools and the number of created threads would be large, possibly causing poor performance.
+There are also a variety of other useful macros in lparallel\footnote{\url{https://lparallel.org/}} that may be useful to implement in Clojure and would complement the macros I've implemented in this project.
+
+It would also be useful to use profiling tools and implement static analysis tools which would detect potential locations for these macros.
+These tools could be used by developers to look for potential opportunities for parallelism, and they could be used to demonstrate the claim that many Clojure programs may benefit from use of these macros.
 
 \bibliography{/home/dpzmick/Documents/Bibtex/senior-thesis.bib}
 
