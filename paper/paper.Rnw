@@ -70,33 +70,42 @@ Developers who are extremely concerned with performance and want a high degree o
 
 \section{Related Work} \label{label:related_work}
 % only discuss task based parallelism in this section
+Clojure has access to all of the JVM, so it has access to the Java \code{ForkJoinPool} library\cite{Lea2000}.
+The \code{ForkJoinPool} library allows Java programmers to create lightweight, recursive tasks, then execute them on an efficient, work stealing, \code{ExecutionEngine}.
+Users of a \code{ForkJoinPool} create a subclass of \code{RecursiveTask} to compute the value of some function.
+Each of these tasks may create more \code{RecursiveTask}s, submit them to the \code{ForkJoinPool}, then wait for their subtasks to complete, without blocking the pool.
+The execution engine for the \code{ForkJoinPool} is a thread pool.
+Each thread maintains it's own queue of tasks to work on.
+Whenever a thread runs out of tasks to work on, it steals tasks from other threads.
+Work stealing has been used a scheduling mechanism is a variety of modern threading libraries and has been very successful \cite{Lea2000, Blumofe1994, Blumofe1995a}
+Clojure programmers can use the \code{ForkJoinPool} from Clojure, but the interface isn't exactly programmer friendly.
 
-\subsection{Clojure and other lisps}
-% lparallel
-% futures
-% claypoole futures
-Makes lots of threads, unatural blah.
-Note sure what's bad about lparallel other than it isn't implemented in Clojure.
-Clojure also has access to Java's libraries, like ForkJoin.... but hard to use and not really a part of the Clojure language.
+Clojure also has some built in support for task parallelism via \code{future}\footnote{\url{https://clojuredocs.org/clojure.core/future}}.
+Each call to future creates a thread to compute the result of a function call in the background.
+When a user is ready to access a value, they can \code{deref} the future to get the computed value (\code{deref} will block until the value is computed).
+For a user, \code{future}s initially seem like a fairly natural way to parallelize recursive functions.
+Unfortunately, Futures only work well when a small number of tasks are created or when the tasks do a lot of blocking I/O.
+Thread creation overhead is high, and people users must be careful not to create an excessive number of threads or create threads to do too little work.
+Claypoole offers many improvements to the builtin Clojure \code{future}s, but it still creates a thread per task.
+The work in this paper is conceptually similar, but the interface I have used differs dramatically from the \code{future}s interface.
+My code also creates tasks for every thread, but these tasks are created on a Java \code{ForkJoinPool}, so the tasks are much more lightweight.
 
-Briefly, a \code{ForkJoinPool} is an executor for lightweight (often recursive) tasks.
-The execution engine uses a work stealing scheduler to schedule the lightweight tasks across a thread pool.
+In Common Lisp, the \code{lparallel}\footnote{\url{https://lparallel.org/overview/}} library and macros are available.
+The macros I have implemented are very similar to the macros \code{lparallel} provides, but, Common Lisp programming conventions are not as ideal for these kinds of macros.
 
 \subsection{Other languages}
-% - cilk/tbb/openmp
-Compiler support is bad.
-Performance is quite good.
-Only real downside is that these are not implemented in Clojure.
-ForkJoin pools are essentially Cilk \cite{CilkReference, Frigo1998}.
-Both provide the support and runtime needed to easily parallelize code, but neither give programmers the ability to mark a function as ``parallel'' then let the macro system deal with granularity and the (small) syntactic overhead (cilk has very little extra syntax).
+In other languages, frameworks like Cilk++\footnote{\url{https://www.cilkplus.org/}}, OpenMP\footnote{\url{http://openmp.org/wp/}}, Threading Building Blocks\footnote{\url{https://www.threadingbuildingblocks.org/}} all exist.
+Some of these require compiler support and advanced dependence analysis to guarantee correctness.
+These libraries all have great performance, but they can't be leveraged from Clojure.
+The macros I've implemented are an attempt to bring some of the niceties of these libraries and compiler extensions to Clojure, without the need to compiler support or complicated dependence analysis.
 
 \section{Mostly Pure Functions}
 Before discussing the macros I've implemented, I need to loosely define a ``mostly pure'' function.
-A mostly pure function is a function that has no side effects which directly impact the values of other user-defined values, at the current level of abstraction.
+A mostly pure function is a thread---safe function with no side effects directly impacting the values of user-defined values, at the current level of abstraction.
 Mostly pure functions can be reordered (or interleaved) without impacting the values of user variables, although the change may impact I/O behavior and output order of a program.
 In some cases, the order of certain side effects may not matter to a programmer.
 For example, it may not matter if we reorder \mintcode{(download file1)} and \mintcode{(download file2)} for a programmer writing a web scraper, but it may matter to a programmer writing a I/O constrained server.
-When a programmer feels that it may be acceptable to change the order of execution of calls to mostly pure functions (the call is ``portable''), we can reorder them subject to these constraints:
+When a programmer feels that it may be acceptable to change the order of, or interleave, calls to mostly pure functions (the call is ``portable''), we can reorder them subject to these constraints:
 
 \begin{enumerate}
     \item A call to a mostly pure function $f$ in a block $B$ in a function's control flow graph can safely be moved to a block $P$ for which all paths in the graph though $P$ also go through $B$.
@@ -119,7 +128,7 @@ A more detailed algorithm for finding safe locations for portable mostly pure fu
     \node[coordinate] (0) at (0.7,0) {};
     \node (start0)      [badnode]                                        {\mintcode{;; we cannot move the call outside of the if.} \\ \mintcode{;; There is a path on which the call will never occur}};
     \node (start)       [badnode, below of=start0]                       {\mintcode{(if (pred? a b c ...)}};
-    \node (iftruedo)    [badnode, below of=start, right of=start]        {\mintcode{(do}};
+    \node (iftruedo)    [goodnode, below of=start, right of=start]       {\mintcode{(do}};
     \node (iftruelet1)  [goodnode, below of=iftruedo, right of=iftruedo] {\mintcode{;; some code that uses a, b, and/or c}};
     \node (iftruelet2)  [goodnode, below of=iftruelet1]                  {\mintcode{(foo a b c))}};
     \node (iffalse)     [badnode, below=2.8cm of 0]                      {\mintcode{(bar a b c))}};
@@ -144,8 +153,7 @@ A more detailed algorithm for finding safe locations for portable mostly pure fu
 \end{figure}
 
 Many Clojure functions fit this definition due to Clojure programming conventions and default immutable data structures.
-This concept is not rigorously defined as there is not a good definition for the semantics of such functions. % TODO find references
-Instead, in this paper, we rely on the judgment of the programmer to tell us when a mostly pure function is portable.
+In this paper, we rely on the judgment of the programmer to tell us when a mostly pure function is portable.
 
 % A mostly pure function is similar to a \code{const} function in C++.
 % \code{const} functions promise not to modify any members of the object on which they are called (unless the member was declared \code{mutable}), essentially promising that the object will not change, from the user of the object's perspective, when the \code{const} function is called.
@@ -153,7 +161,7 @@ Instead, in this paper, we rely on the judgment of the programmer to tell us whe
 \section{parlet}
 The first of the parallel macros is called \parlet{}.
 \parlet{} is a modified version of the Clojure \code{let} form.
-The \parlet{} macro has exactly the same semantics as Clojure's \code{let}, but it evaluates all of its bindings in parallel.
+The \parlet{} macro has exactly the same behavior as Clojure's \code{let}, but it evaluates all of its bindings in parallel.
 For example, suppose I had some long running function \code{foo}.
 I need to add the result of two calls to this function.
 In Figure \ref{fig:parlet_basic}, we use \parlet{} to make two calls to \code{foo}, then add the results.
@@ -173,13 +181,10 @@ In Figure \ref{fig:parlet_basic}, we use \parlet{} to make two calls to \code{fo
 \end{figure}
 
 In this example, the expressions \mintcode{(foo value1)} and \mintcode{(foo value2)} are both evaluated as \code{ForkJoinTask}s in a \code{ForkJoinPool}\cite{Lea2000}.
-
-The calls to \code{foo} are both \code{forked} immediately, then we attempt to evaluate the body of the \code{let}.
+The calls to \code{foo} are both forked immediately, then we attempt to evaluate the body of the \parlet{}.
 This means that the code in the body of the \code{let} which does not depend on the computations of \code{a} and \code{b} can execute without delay.
-
-Since the \code{ForkJoinPool} is designed for recursive workloads, it allows tasks which are currently executing to create new tasks, submit them to the pool, then wait for the task to complete.
-None of the pool's threads will block when this occurs.
-This means that nested \parlet{} forms (Figure \ref{fig:parlet_noblock}) will execute without blocking.
+Additionally, since the \code{ForkJoinPool} is designed for recursive workloads, tasks which are currently executing can create new tasks, submit them to the pool, then wait for the task to complete, without blocking execution.
+This means that nested \parlet{} forms (Figure \ref{fig:parlet_noblock}) will not block each other.
 
 \begin{figure}[h]
 \centering
@@ -195,9 +200,6 @@ This means that nested \parlet{} forms (Figure \ref{fig:parlet_noblock}) will ex
 \caption{Nested parlet forms}
 \label{fig:parlet_noblock}
 \end{figure}
-
-In Figure \ref{fig:parlet_noblock}, calls to the function \code{foo} will be processed in the background until we reach the line using the variables that the results are bound to.
-This means that parlets can be nested with little concern (again as long as functions are pure).
 
 Code like this may not arise when the code is human generated, but it may arise when the code is generated by another macro.
 We will see some examples of this later.
@@ -224,8 +226,8 @@ If we plan on evaluating each binding in parallel, we can't allow the bindings t
 So, the \parlet{} macro looks through the bindings in the macro to determine if any of them depend on any of the names defined previously in the macro.
 If there are any, the macro will halt the compiler and report an error to the user.
 
-This transformation is only safe when \code{foo} (and more generally, and function call in the bindings) is a mostly pure function.
-Here, we punt the definition of mostly pure to the programmer.
+\subsection{Correctness}
+This transformation is only safe when \code{foo} (and more generally, any function call in the bindings) is a mostly pure function.
 If the programmer chooses to use a \parlet{} form, we assume that the functions are mostly pure.
 This simple dependency check, as well as the programmers promise that all function called are mostly pure Clojure code, allow us to ensure correct parallelism with this macro.
 
