@@ -72,7 +72,7 @@ Clojure has access to all of the JVM, so it has access to the Java \code{ForkJoi
 The \code{ForkJoinPool} library allows Java programmers to create lightweight, recursive tasks which are executed by a thread pool.
 Each thread maintains a queue of tasks to work on.
 When a thread runs out of tasks, it steals tasks from other threads.
-Work stealing has been used a scheduling mechanism is a variety of modern threading libraries and has been very successful \cite{Lea2000, Blumofe1994, Blumofe1995a}
+Work stealing has been used as a scheduling mechanism isn a variety of modern threading libraries and has been very successful \cite{Lea2000, Blumofe1994, Blumofe1995a}
 Users of a \code{ForkJoinPool} create a subclass of \code{RecursiveTask} to compute the value of some function.
 Each of these tasks may create more \code{RecursiveTask}s, submit them to the \code{ForkJoinPool}, then wait for their subtasks to complete, without blocking the pool.
 Clojure programmers can use the \code{ForkJoinPool} libraries from Clojure, but the interface isn't exactly programmer friendly (or idiomatic).
