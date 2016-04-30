@@ -22,6 +22,8 @@
 \def\parexpr{\code{parexpr}}
 \def\defparfun{\code{defparfun}}
 
+\newminted{clojure}{fontsize=\footnotesize}
+
 \author{
     Zmick, David\\
     \texttt{zmick2@illinois.edu}
@@ -41,8 +43,6 @@ data <- read.csv("../data.csv")
 % \tableofcontents
 % \pagebreak
 
-% question: Can macros be used to create interesting and useful parallelism
-% tools for recursive functions in clojure.
 \section{Introduction}
 
 Clojure is a lisp--like language running on the Java Virtual Machine\cite{Hickey2008}.
@@ -63,8 +63,8 @@ Developers have a good relationship with data parallel problems\cite{Okur2012a},
 \footnotetext[3]{\url{https://github.com/aphyr/tesser}}
 \footnotetext[4]{\url{https://github.com/TheClimateCorporation/claypoole}}
 
-Using Clojure's macro system, I have implemented a set of macros which allow developers to take advantage of Clojure's task parallelism potential.
-I have shown that it is possible to attain reasonable degrees of parallelism with minimal modification to existing serial code.
+Using Clojure's macro system, we have implemented a set of macros which allow developers to take advantage of Clojure's task parallelism potential.
+We have shown that it is possible to attain reasonable degrees of parallelism with minimal modification to existing serial code.
 
 \section{Related Work} \label{label:related_work}
 % only discuss task based parallelism in this section
@@ -74,7 +74,7 @@ Each thread maintains a queue of tasks to work on.
 When a thread runs out of tasks, it steals tasks from other threads.
 Work stealing has been used as a scheduling mechanism isn a variety of modern threading libraries and has been very successful \cite{Lea2000, Blumofe1994, Blumofe1995a}
 Users of a \code{ForkJoinPool} create a subclass of \code{RecursiveTask} to compute the value of some function.
-Each of these tasks may create more \code{RecursiveTask}s, submit them to the \code{ForkJoinPool}, then wait for their subtasks to complete, without blocking the pool.
+Each of these tasks may create more \code{RecursiveTask}s, submit them to the \code{ForkJoinPool}, then wait for their subtasks to complete, without blocking any threads in the pool.
 Clojure programmers can use the \code{ForkJoinPool} libraries from Clojure, but the interface isn't exactly programmer friendly (or idiomatic).
 
 Clojure also has built in support for task parallelism via \code{future}\footnote{\url{https://clojuredocs.org/clojure.core/future}}.
@@ -87,26 +87,30 @@ Because thread creation overhead is high, users must be careful not to create an
 
 Claypoole's implementation of \code{future} offers many improvements to the built in \code{future}.
 The Claypoole implementation executes tasks in a fixed sized thread pool, but, the executing thread will block if the task creates a new task, then immediately \code{deref}s it.
-This means that a programmer must be very careful not to create tasks in a Claypoole thread pool which depend on other tasks that will also be submitted to the pool, otherwise their code may deadlock.
+This means that a programmer must be very careful not to create tasks in a Claypoole thread pool which depend on other tasks that will also be submitted to the pool.
 
-The work in this paper is conceptually similar, but the interface I have used differs dramatically from the \code{future}s interface.
+The work in this paper is conceptually similar, but the interface I have used differs dramatically from the \code{future} interface.
 My code also creates many tasks, but these tasks are created on a Java \code{ForkJoinPool}, so the tasks are much more lightweight, and they can be composed recursively.
 
 In Common Lisp, the \code{lparallel}\footnote{\url{https://lparallel.org/overview/}} library and macros are available.
-The macros I have implemented are very similar to the macros \code{lparallel} provides, but, Common Lisp programming conventions are not as ideal for these kinds of macros, and Common Lisp programmers can't use the battle tested \code{ForkJoinPool} implementation.
+The macros I have implemented are very similar to the macros \code{lparallel} provides, but, Common Lisp programming conventions are not as ideal for these kinds of macros.
+Common Lisp programmers also do not have access to the battle tested \code{ForkJoinPool} implementation.
 
 \subsection{Other languages}
 In other languages, frameworks like Cilk++\footnote{\url{https://www.cilkplus.org/}}, OpenMP\footnote{\url{http://openmp.org/wp/}}, Threading Building Blocks\footnote{\url{https://www.threadingbuildingblocks.org/}} have been implemented.
-Some of these require compiler support and advanced dependence analysis to guarantee correctness.
+Some of these require compiler support and complex dependence analysis to guarantee correctness.
 The macros I've implemented are an attempt to bring some of the niceties of these libraries and compiler extensions to Clojure, without the need to compiler support or complicated dependence analysis.
 
 \section{Mostly Pure Functions} \label{label:mostly_pure}
-Before discussing the macros I've implemented, I need to loosely define a ``mostly pure'' function.
+Before discussing the macros we've implemented, we need to loosely define a ``mostly pure'' function.
 A mostly pure function is a thread---safe function with no side effects directly impacting the values of user-defined values, at the current level of abstraction.
-Mostly pure functions can be reordered (or interleaved) without impacting the values of user variables, although the change may impact I/O behavior and output order of a program.
-In some cases, the order of certain side effects may not matter to a programmer.
+A mostly pure function isn't actually pure (from a compiler's perspective), but, in many cases cases, the order of certain side effects may not matter to a programmer.
 For example, a programmer writing a web scraper may not care what order \mintcode{(download file1)} and \mintcode{(download file2)} execute in, but the order may matter to a programmer writing a I/O constrained server.
-When a programmer feels that it may be acceptable to change the order of, or interleave, calls to mostly pure functions, we can reorder them subject to these constraints:
+Mostly pure functions capture this idea; it may be the case that a function isn't actually pure, but we want to treat it as pure.
+Many Clojure functions fit this definition due to Clojure programming conventions and default immutable data structures.
+
+Calls to mostly pure functions can be reordered (or interleaved) without impacting the values of user variables, although the change may impact I/O behavior and output order of a program.
+When a programmer tells us a function is mostly pure, we can reorder them subject to the following constraints:
 
 \begin{enumerate}
     \item A call to a mostly pure function $f$ in a block $B$ in a function's control flow graph can safely be moved to a block $P$ for which all paths in the graph though $P$ also go through $B$.
@@ -120,40 +124,94 @@ We do not want to allow reordering which introduces new computations or would re
 The second constraint ensures that we don't ever violate the most basic of correctness properties.
 A more detailed algorithm for finding safe locations for portable mostly pure functions in Clojure code is discussed in Section \ref{label:mpure_algo}
 
-\tikzstyle{goodnode} = [rectangle, draw=black, text width=0.8\linewidth]
-\tikzstyle{badnode}  = [rectangle, draw=none,  text width=0.8\linewidth]
+
+\tikzstyle{goodround} = [ellipse, draw=black]
+\tikzstyle{badround}  = [ellipse, draw=black, style=dashed]
 
 \begin{figure}[h]
 \centering
-\begin{tikzpicture}[node distance=0.62cm,auto]
-    \node[coordinate] (0) at (0.7,0) {};
-    \node (start0)      [badnode]                                        {\mintcode{;; cannot move the call outside}};
-    \node (start)       [badnode, below of=start0]                       {\mintcode{(if (pred? a b c ...)}};
-    \node (iftruedo)    [goodnode, below of=start, right of=start]       {\mintcode{(do}};
-    \node (iftruelet1)  [goodnode, below of=iftruedo, right of=iftruedo] {\mintcode{;; code that uses a, b, and/or c}};
-    \node (iftruelet2)  [goodnode, below of=iftruelet1]                  {\mintcode{(foo a b c))}};
-    \node (iffalse)     [badnode, below=2.8cm of 0]                      {\mintcode{(bar a b c))}};
+\begin{tikzpicture}[->, >=stealth', auto, node distance=0.8cm]
+    \tikzstyle{every node}=[font=\small]
+    \node (start) [badround] {\mintcode{(do ...}};
+    \node (startmiddle) [badround, below of=start] {\dots};
+    \node (startend) [badround, below of=startmiddle] {\mintcode{(if (pred? ...)}};
+
+    \draw[->] (start) -- (startmiddle);
+    \draw[->] (startmiddle) -- (startend);
+
+    \node (falsestart) [badround, below of=startend, left of=startend] {\mintcode{false}};
+    \node (falsemid) [badround, below of=falsestart] {\dots};
+    \node (falseend) [badround, below of=falsemid] {\mintcode{...}};
+
+    \draw[->] (startend) -- (falsestart);
+
+    \draw[->] (falsestart) -- (falsemid);
+    \draw[->] (falsemid) -- (falseend);
+
+    \node (truestart) [goodround, below of=startend, right of=startend] {\mintcode{true}};
+    \node (truemid) [goodround, below of=truestart] {\dots};
+    \node (trueend) [goodround, below of=truemid] {\mintcode{(f ...)}};
+
+    \draw[->] (startend) -- (truestart);
+
+    \draw[->] (truestart) -- (truemid);
+    \draw[->] (truemid) -- (trueend);
+
 \end{tikzpicture}
-\caption{The call to the mostly pure function \code{foo} can only be moved to the boxed nodes}
+\caption{The call to the mostly pure function \code{f} can only be moved to the nodes with solid borders}
 \label{fig:move_mostly_pure}
 \end{figure}
 
+% \begin{figure}[h]
+% \centering
+% \begin{tikzpicture}[node distance=0.62cm,auto]
+%     \node[coordinate] (0) at (0.7,0) {};
+%     \node (start0)      [badnode]                                        {\mintcode{;; cannot move the call outside}};
+%     \node (start)       [badnode, below of=start0]                       {\mintcode{(if (pred? a b c ...)}};
+%     \node (iftruedo)    [goodnode, below of=start, right of=start]       {\mintcode{(do}};
+%     \node (iftruelet1)  [goodnode, below of=iftruedo, right of=iftruedo] {\mintcode{;; code that uses a, b, and/or c}};
+%     \node (iftruelet2)  [goodnode, below of=iftruelet1]                  {\mintcode{(foo a b c))}};
+%     \node (iffalse)     [badnode, below=2.8cm of 0]                      {\mintcode{(bar a b c))}};
+% \end{tikzpicture}
+% \caption{The call to the mostly pure function \code{foo} can only be moved to the boxed nodes}
+% \label{fig:move_mostly_pure}
+% \end{figure}
+
+% \begin{figure}[h]
+% \centering
+% \begin{tikzpicture}[node distance=0.61cm,auto]
+%     \node[coordinate] (0) at (1.0,0) {};
+%     \node (a)           [badnode]                          {\mintcode{(let [a (bar 10)]}};
+%     \node (b)           [goodnode, below of=a, right of=a] {\mintcode{;; code that uses a}};
+%     \node (c)           [goodnode, below of=b]             {\mintcode{(let [b (bar a)]}};
+%     \node (d)           [goodnode, below of=c, right of=c] {\mintcode{;; code that uses a and/or b}};
+%     \node (e)           [goodnode, below of=d]             {\mintcode{(foo a)))}};
+% \end{tikzpicture}
+% \caption{The call to the mostly pure function \code{foo} can only be moved to the boxed nodes}
+% \label{fig:move_mostly_pure_through_let}
+% \end{figure}
+
 \begin{figure}[h]
 \centering
-\begin{tikzpicture}[node distance=0.61cm,auto]
-    \node[coordinate] (0) at (1.0,0) {};
-    \node (a)           [badnode]                          {\mintcode{(let [a (bar 10)]}};
-    \node (b)           [goodnode, below of=a, right of=a] {\mintcode{;; code that uses a}};
-    \node (c)           [goodnode, below of=b]             {\mintcode{(let [b (bar a)]}};
-    \node (d)           [goodnode, below of=c, right of=c] {\mintcode{;; code that uses a and/or b}};
-    \node (e)           [goodnode, below of=d]             {\mintcode{(foo a)))}};
+\begin{tikzpicture}[->, >=stealth', auto, node distance=0.9cm]
+    \tikzstyle{every node}=[font=\small]
+    \node (start) [badround] {\mintcode{(do ...}};
+    \node (letstart) [badround, below of=start] {\mintcode{(let [a (...)]}};
+    \node (junk1) [goodround, below of=letstart, right of=letstart] {...};
+
+    \node (let2start) [goodround, below of=junk1] {\mintcode{(let [b (...)]}};
+    \node (call) [goodround, below of=let2start, right of=let2start] {\mintcode{(f a)}};
+
+    \draw[->] (start) -- (letstart);
+    \draw[->] (letstart) -- (junk1);
+    \draw[->] (junk1) -- (let2start);
+    \draw[->] (let2start) -- (call);
+
 \end{tikzpicture}
-\caption{The call to the mostly pure function \code{foo} can only be moved to the boxed nodes}
+\caption{The call to the mostly pure function \code{f} can only be moved to the nodes with solid borders}
 \label{fig:move_mostly_pure_through_let}
 \end{figure}
 
-Many Clojure functions fit this definition due to Clojure programming conventions and default immutable data structures.
-In this paper, we rely on the judgment of the programmer to tell us when a function can be considered mostly pure.
 
 % A mostly pure function is similar to a \code{const} function in C++.
 % \code{const} functions promise not to modify any members of the object on which they are called (unless the member was declared \code{mutable}), essentially promising that the object will not change, from the user of the object's perspective, when the \code{const} function is called.
@@ -162,7 +220,7 @@ In this paper, we rely on the judgment of the programmer to tell us when a funct
 \begin{subfigure}[b]{0.5\textwidth}
 \centering
 \RecustomVerbatimEnvironment{Verbatim}{BVerbatim}{}
-\begin{minted}{clojure}
+\begin{minted}[fontsize=\small]{clojure}
 (parlet
   [a (foo value1)
    b (foo value2)]
@@ -175,7 +233,7 @@ In this paper, we rely on the judgment of the programmer to tell us when a funct
 \begin{subfigure}[b]{0.5\textwidth}
 \centering
 \RecustomVerbatimEnvironment{Verbatim}{BVerbatim}{}
-\begin{minted}{clojure}
+\begin{minted}[fontsize=\small]{clojure}
 (let
   [a (fork (new-task (fn [] (foo 1))))
    b (fork (new-task (fn [] (foo 2))))]
@@ -213,7 +271,7 @@ The bindings are evaluated from first to last.
 \begin{figure}[h]
 \centering
 \RecustomVerbatimEnvironment{Verbatim}{BVerbatim}{}
-\begin{minted}{clojure}
+\begin{minted}[fontsize=\small]{clojure}
 (parlet [a 1
          b (+ 1 a)]
   a)
@@ -229,95 +287,121 @@ So, the \parlet{} macro will halt the compiler and report an error to the user i
 \subsection{Correctness}
 This transformation is only safe when \code{foo} (and more generally, any function call in the bindings) is a mostly pure function.
 If the programmer chooses to use a \parlet{} form, we assume that the functions called in the bindings are mostly pure.
-This simple dependency check, as well as the programmers promise that all function called are mostly pure Clojure code, allow us to ensure correct parallelism with this macro.
+The simple dependency check combined with the programmers promise that all function called are mostly pure allow us to ensure correct parallelism with this macro.
 
 \section{defparfun}
 \begin{figure*}[t!]
 \captionsetup[subfigure]{belowskip=20pt}
-\begin{subfigure}[b]{0.5\textwidth}
+\begin{subfigure}[b]{0.33\textwidth}
 \RecustomVerbatimEnvironment{Verbatim}{BVerbatim}{}
 \centering
-\begin{minted}{clojure}
+\begin{minted}[fontsize=\small]{clojure}
 (defn f [a]
   (if (pred? ....)
     (do ...)
-    (do ... (f (+ 1 a))))))
+    (do ... (f (+ 1 a)))))
 \end{minted}
-\subcaption{}
+\subcaption{Input code}
 \label{fig:moveit_a}
 \end{subfigure}%
-\begin{subfigure}[b]{0.5\textwidth}
+\begin{subfigure}[b]{0.33\textwidth}
 \RecustomVerbatimEnvironment{Verbatim}{BVerbatim}{}
 \centering
-\begin{minted}{clojure}
+\begin{minted}[fontsize=\small]{clojure}
+(defn f [a]
+  (if (pred? ....)
+    (do ...)
+    (do ... e1)))
+\end{minted}
+\subcaption{Replace call with new variable}
+\label{fig:moveit_b}
+\end{subfigure}%
+\begin{subfigure}[b]{0.33\textwidth}
+\RecustomVerbatimEnvironment{Verbatim}{BVerbatim}{}
+\centering
+\begin{minted}[fontsize=\small]{clojure}
 (defn f [a]
   (if (pred? ....)
     (do ...)
     (let [e1 (f (+ 1 a))]
       (do ... e1))))
 \end{minted}
-\subcaption{}
-\label{fig:moveit_b}
+\subcaption{The \code{if} forces a \code{let}}
+\label{fig:moveit_c}
 \end{subfigure}
 \captionsetup[subfigure]{belowskip=2pt}
-\begin{subfigure}[b]{0.5\textwidth}
+\begin{subfigure}[b]{0.33\textwidth}
 \RecustomVerbatimEnvironment{Verbatim}{BVerbatim}{}
 \centering
-\begin{minted}{clojure}
+\begin{minted}[fontsize=\small]{clojure}
 (defn f [...]
   (let [a ...]
     (let [b ...]
       (f (+ 1 a)))))
 \end{minted}
-\subcaption{}
-\label{fig:moveit_c}
+\subcaption{Input code}
+\label{fig:moveit_d}
 \end{subfigure}%
-\begin{subfigure}[b]{0.5\textwidth}
+\begin{subfigure}[b]{0.33\textwidth}
 \RecustomVerbatimEnvironment{Verbatim}{BVerbatim}{}
 \centering
-\begin{minted}{clojure}
+\begin{minted}[fontsize=\small]{clojure}
+(defn f [...]
+  (let [a ...]
+    (let [b ...]
+      e1)))
+\end{minted}
+\subcaption{Introduce a new variable}
+\label{fig:moveit_e}
+\end{subfigure}%
+\begin{subfigure}[b]{0.33\textwidth}
+\RecustomVerbatimEnvironment{Verbatim}{BVerbatim}{}
+\centering
+\begin{minted}[fontsize=\small]{clojure}
 (defn f [...]
   (let [a ...]
     (let [e1 (f (+ 1 a))]
-      (let [b ...] e1)))))
+      (let [b ...]
+        e1)))))
 \end{minted}
-\subcaption{}
-\label{fig:moveit_d}
+\subcaption{The \code{let} which defines \code{a} forces a \code{let}}
+\label{fig:moveit_f}
 \end{subfigure}
 \caption{Moving a recursive function call}
 \label{fig:moveit}
 \end{figure*}
 
-\defparfun{} allows a programmer to parallelize calls to a recursive function.
+\defparfun{} allows a programmer define a function which will parallelize its recursive calls.
 The \defparfun{} macro supports a granularity argument, allowing the programmer to specify when they would like to stop creating additional parallel tasks.
 The macro emits the expression provided for granularity inside of an \code{if} statement at the top of the function, so the programmer can use any arbitrary condition, including a condition dependent on the function's arguments, to decide when to stop spawning new tasks.
 Figure \ref{fig:fib_parfun} defines a parallel Fibonacci function, which will only execute in parallel when the value of it's argument is greater than $35$.
+If a programmer choses to use \defparfun{} to define a function, we assume that the function being defined is mostly pure.
 
 \subsection{Implementation} \label{label:mpure_algo}
-In Clojure, any form which introduces control flow will eventually expand to an \code{if} for.
+In Clojure, any form which introduces control flow will eventually expand to an \code{if} form.
 Any form which introduces new bindings (including Clojure's destructuring mechanisms) will eventually expand to a \code{let} form.
-Because the constraints on movement of mostly pure functions only depend on control flow and variable bindings, we only need to make decisions about mostly pure function calls near \code{if} forms and \code{let} forms, in the full expanded versions of Clojure functions.
+Because the constraints on movement of mostly pure functions only depend on control flow and variable bindings, we only need to make decisions about mostly pure function calls near \code{if} forms and \code{let} forms, in the fully expanded code for a function.
 
-When provided a function to manipulate, this function first expands all of the other macros in the function body, to get the nice property described above.
+When provided a function to manipulate, this macro first expands all of the other macros in the function body, to get the nice property described above.
 Then, the macro recursively crawls the function body, looking for recursive call sites.
 If a call site is found, the recursive call (in the function body) is replaced by a newly introduced variable, and we hold onto the original recursive call.
 When all of the subexpressions for a given expression have been evaluated and transformed, we check if the expression is a \code{if} form or a \code{let} form.
-If we are sitting on a \code{if} form, all of the bindings introduced by the \code{true} branch and by the \code{false} branch are emitted in a new \code{let} expression (Figures \ref{fig:moveit_a} and \ref{fig:moveit_b}).
+If we are sitting on a \code{if} form, all of the bindings introduced by the \code{true} branch and by the \code{false} branch are emitted in a new \code{let} expression (Figures \ref{fig:moveit_a}, \ref{fig:moveit_b}, and \ref{fig:moveit_c}).
 This guarantees that condition 1 holds (Section \ref{label:mostly_pure}).
 If we are sitting on a \code{let} form, any of the bindings which depend on the expressions introduced by the \code{let} form are emitted.
-The remaining bindings continue to trickle upwards (see Figures \ref{fig:moveit_c} and \ref{fig:moveit_d}).
+The remaining bindings continue to trickle upwards (see Figures \ref{fig:moveit_d}, \ref{fig:moveit_e}, and \ref{fig:moveit_f}).
 This guarantees that condition 2 holds.
 
 After this transformation, it is possible to replace the \code{let} forms which bind the function results to their values with \parlet{} forms providing the same bindings.
 The introduction of the \parlet{} form introduces parallelism, so each recursive call will execute in the \code{ForkJoin} pool, in parallel.
 To complete the Fibonacci example, the \defparfun{} expansion is shown in Figure \ref{fig:parfun_result}.
 
-Because the transformation does not violate any of the properties defined for mostly pure functions, this transformation is safe when the function being declared as a \code{parfun} is mostly pure.
+Because the transformation does not violate any of the properties defined for mostly pure functions, this transformation is safe.
 
 \begin{figure}[h]
 \RecustomVerbatimEnvironment{Verbatim}{BVerbatim}{}
 \centering
-\begin{minted}{clojure}
+\begin{minted}[fontsize=\small]{clojure}
 (defn fib [n]
  ;; granularity check
  (if (< n 35)
@@ -343,7 +427,7 @@ Because the transformation does not violate any of the properties defined for mo
 \begin{subfigure}[b]{0.5\textwidth}
 \RecustomVerbatimEnvironment{Verbatim}{BVerbatim}{}
 \centering
-\begin{minted}{clojure}
+\begin{minted}[fontsize=\small]{clojure}
 (defn fib [n]
   (if (or (= 0 n) (= 1 n))
     1
@@ -357,7 +441,7 @@ Because the transformation does not violate any of the properties defined for mo
 \begin{subfigure}[b]{0.5\textwidth}
 \RecustomVerbatimEnvironment{Verbatim}{BVerbatim}{}
 \centering
-\begin{minted}{clojure}
+\begin{minted}[fontsize=\small]{clojure}
 (defparfun fib [n] (< n 35)
   (if (or (= 0 n) (= 1 n))
     1
@@ -403,13 +487,13 @@ jfib <- plot_means_error_for_benchmark(data, "fib", "fj")
 
 The large variance we see in the Clojure benchmarks is somewhat disturbing, especially since it does not show up in the Java results.
 Since it does not appear in the Java benchmarks, it is not a result of variable performance in the Google Cloud Platform virtual machines.
-In Figure \ref{fig:fib_sd} I show the standard deviation of the mean runtime for the serial and parallel Clojure Fibonacci functions, along with their Java counterparts.
+Figure \ref{fig:fib_sd} shows the standard deviations of the mean runtime for the serial and parallel Clojure Fibonacci functions, along with their Java counterparts.
 Notice that the Java results do not have nearly as high deviations from mean runtime.
-While I cannot completely explain the variability, it seems to be caused by the increased pressure Clojure's function implementation and the \code{ForkJoinPool} wrapper tasks places on the JVM garbage collector.
+While we cannot completely explain the variability, it seems to be caused by the increased pressure Clojure's function implementation and the \code{ForkJoinPool} wrapper tasks places on the JVM garbage collector.
 Every Clojure function is an \code{Object} created following the Clojure \code{IFn} interface\footnote{\url{http://clojure.org/reference/special_forms\#fn}}.
 When running on the \code{ForkJoinPool}, each function is further wrapped in a \code{RecursiveTask} object, causing additional allocations.
 This effectively moves the stack for the recursive function to the heap (eliminating Clojure's stack depth limit\footnote{\url{http://clojure.org/about/functional\_programming\#\_recursive\_looping}}).
-The garbage collector behaves somewhat non---deterministically, so I believe this is the explanation for the large variation in runtime for the serial and recursive Fibonacci code.
+The garbage collector behaves somewhat non---deterministically, so we believe that this is the explanation for the large variations in runtime present in the Clojure results.
 We can avoid excessive task creation by controlling the granularity of parallelism, to an extent.
 The Fibonacci example highlights this problem because the function call overhead greatly exceeds the amount of work each call is doing.
 We will see an example for which this is not the case in Section \ref{label:id3_bench}.
@@ -439,7 +523,7 @@ barplot(t(as.matrix(d[,nnames])), beside=TRUE, names=d$cores, legend=nnames,
 @
 
 \subsection{ID3} \label{label:id3_bench}
-I also implemented a simple ID3\footnote{\url{https://en.wikipedia.org/wiki/ID3_algorithm}} classifier in Clojure.
+We also implemented a simple ID3\footnote{\url{https://en.wikipedia.org/wiki/ID3_algorithm}} classifier in Clojure.
 The code is bit longer, so it is not included in this paper, but it can be found on this project's GitHub page\footnote{\url{https://github.com/dpzmick/auto_parallel}}.
 For each benchmark, a random 1,000 element dataset was created.
 Each element of the dataset was given 100 random features.
@@ -453,16 +537,16 @@ id3 <- plot_means_error_for_benchmark(data, "id3", "parfun")
 @
 
 \section{Conclusions and Future Work}
-The Clojure macros I've implemented perform transformation which can speedup Clojure code to a degree which matches the speedups attained using handwritten Java code, running on the same hardware.
+The Clojure macros we've implemented perform transformations which can speed up serial Clojure code to a degree which matches the speedups attained using handwritten Java code, running on the same hardware.
 Parallelism is difficult, and automatic parallelism is possible\cite{Banerjee1993}, but these techniques are complicated and often do not get the desired results and the research community has begun to feel the need for explicit parallelism in programs.\cite{Arvind2010}
-Languages like Clojure are well suited for this parallelism and techniques like mine can easily be implemented.
-In a language with a strong STM system and immutable structures, such transformations are easy to reason about, making it much simpler for programmers to implement explicitly parallel programs.
+These macros are designed to allow programmers whose primary concern is not performance to write explicitly parallel programs.
+In a language with a strong STM system and immutable structures, macros like these are easy to reason about, making it much simpler for programmers to implement explicitly parallel programs.
 
 Macros of this style do not inhibit the programmers ability to use the other mechanisms implemented in the language, although interoperability with them could be improved.
-For example, one of the tests which was not discussed in this paper involved using the STM system from within a function declared with \defparfun{}.
+For example, one of the tests which was not discussed in this paper used the STM system from within a function declared with \defparfun{}.
 Benchmarks on this code behaved correctly and performance improved as expected.
 However, if a programmer attempted to use a \code{pmap} or \code{future} inside of a \defparfun{} or \parlet{}, the two systems would create separate thread pools and the number of created threads would be large, possibly causing poor performance.
-There are also a variety of other useful macros in lparallel\footnote{\url{https://lparallel.org/}} that may be useful to implement in Clojure and would complement the macros I've implemented in this project.
+There are also a variety of other useful macros in lparallel\footnote{\url{https://lparallel.org/}} would be useful to implement in Clojure.
 
 % It would also be useful to use profiling tools and implement static analysis tools which would detect potential locations for these macros.
 % These tools could be used by developers to look for potential opportunities for parallelism, and they could be used to demonstrate the claim that many Clojure programs may benefit from use of these macros.
