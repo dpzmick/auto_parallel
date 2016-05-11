@@ -1,5 +1,6 @@
 (ns benchmark.fib
   (:require [criterium.core :as cr])
+  (:require [com.dpzmick.util :refer :all])
   (:require [com.dpzmick.parallel-macros.parexpr :refer [parexpr]])
   (:require [com.dpzmick.parallel-macros.parlet :refer [parlet]])
   (:require [com.dpzmick.parallel-macros.defparfun :refer [defparfun]]))
